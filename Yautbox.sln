@@ -1,0 +1,47 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "common", "common", "{4D868479-5258-4D38-A7E2-F9D811EFD6EB}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		.gitignore = .gitignore
+		Directory.Packages.props = Directory.Packages.props
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{9E642318-8B31-4255-81FB-803949BD0C2F}"
+	ProjectSection(SolutionItems) = preProject
+		src\Directory.Build.props = src\Directory.Build.props
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{30B5EA61-1992-47C8-B418-20D56EEB58A9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yautbox", "src\Yautbox\Yautbox.csproj", "{7AE9734E-1E46-4D25-82DA-DA6A8D6B7BFD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yautbox.Postgres", "src\Yautbox.Postgres\Yautbox.Postgres.csproj", "{5FA04F60-1E43-46C3-B8DA-3D71E94CCCB4}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{7AE9734E-1E46-4D25-82DA-DA6A8D6B7BFD} = {9E642318-8B31-4255-81FB-803949BD0C2F}
+		{5FA04F60-1E43-46C3-B8DA-3D71E94CCCB4} = {9E642318-8B31-4255-81FB-803949BD0C2F}
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7AE9734E-1E46-4D25-82DA-DA6A8D6B7BFD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7AE9734E-1E46-4D25-82DA-DA6A8D6B7BFD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7AE9734E-1E46-4D25-82DA-DA6A8D6B7BFD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7AE9734E-1E46-4D25-82DA-DA6A8D6B7BFD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5FA04F60-1E43-46C3-B8DA-3D71E94CCCB4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5FA04F60-1E43-46C3-B8DA-3D71E94CCCB4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5FA04F60-1E43-46C3-B8DA-3D71E94CCCB4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5FA04F60-1E43-46C3-B8DA-3D71E94CCCB4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
