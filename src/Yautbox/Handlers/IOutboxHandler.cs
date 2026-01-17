@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace Yautbox.Handlers;
 
-public interface IOutboxHandler<in TPayload>
+public interface IOutboxHandler<TPayload>
 {
-    Task HandleAsync(IEnumerable<TPayload> payloads, CancellationToken cancellationToken);
+    Task HandleAsync(IEnumerable<OutboxMessage<TPayload>> messages, CancellationToken cancellationToken);
 }

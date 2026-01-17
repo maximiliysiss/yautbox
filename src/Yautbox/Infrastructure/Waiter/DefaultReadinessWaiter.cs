@@ -1,9 +1,9 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Yautbox.Infrastructure;
+namespace Yautbox.Infrastructure.Waiter;
 
-public class DefaultReadinessWaiter : IInfrastructureReadinessWaiter
+internal class DefaultReadinessWaiter : IInfrastructureReadinessWaiter
 {
     public Task WaitAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }

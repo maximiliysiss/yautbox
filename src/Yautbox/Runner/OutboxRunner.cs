@@ -1,36 +1,49 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Transactions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Yautbox.Extensions.DateTime;
+using Yautbox.Extensions.Enumerable;
+using Yautbox.Extensions.Logger;
 using Yautbox.Handlers;
-using Yautbox.Infrastructure;
-using Yautbox.Persistence;
+using Yautbox.Infrastructure.DateTime;
+using Yautbox.Infrastructure.Hosted;
+using Yautbox.Infrastructure.Waiter;
+using Yautbox.Provider;
+using Yautbox.Runner.Options;
 
 namespace Yautbox.Runner;
 
-internal class OutboxRunner<THandler, TPayload, TOptions> : RestartableService
-    where THandler : IOutboxHandler<TPayload>
-    where TOptions : IOutboxRunnerOptions
+internal class OutboxRunner<THandler, TPayload> : RestartableService where THandler : IOutboxHandler<TPayload>
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly IInfrastructureReadinessWaiter _readinessWaiter;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
-    private readonly IOptionsMonitor<TOptions> _options;
+    private readonly IOptionsMonitor<IOutboxRunnerOptions> _options;
+
+    private readonly ILogger<OutboxRunner<THandler, TPayload>> _logger;
 
     public OutboxRunner(
-        IPlatformLifecycle lifecycle,
         IServiceProvider serviceProvider,
-        IOptionsMonitor<TOptions> options,
+        IOptionsMonitor<IOutboxRunnerOptions> options,
         IInfrastructureReadinessWaiter readinessWaiter,
-        ILogger<OutboxRunner<THandler, TPayload, TOptions>> logger)
-        : base(logger, lifecycle)
+        ILogger<OutboxRunner<THandler, TPayload>> logger,
+        IDateTimeProvider dateTimeProvider)
+        : base(logger)
     {
         _serviceProvider = serviceProvider;
         _readinessWaiter = readinessWaiter;
+        _logger = logger;
+        _dateTimeProvider = dateTimeProvider;
         _options = options;
     }
 
-    protected override string ServiceName => $"{GetType().Name}[{typeof(TPayload).Name},{typeof(THandler).Name}]";
+    protected override string ServiceName => $"{base.ServiceName}[{typeof(TPayload).Name},{typeof(THandler).Name}]";
 
     protected override async Task ExecuteAsync(CancellationTokenSource reloadTokenSource)
     {
@@ -43,64 +56,126 @@ internal class OutboxRunner<THandler, TPayload, TOptions> : RestartableService
 
         if (options.IsDisabled)
         {
-            Logger.StoppedOutbox(ServiceName);
-
+            _logger.DisableOutbox(ServiceName);
             await Task.Delay(Timeout.Infinite, cancellationToken);
         }
 
-        using var scope = _serviceProvider.CreateScope();
+        // Initial jitter to spread load
+        await Task.Delay(TimeSpan.Zero.Jitter(), cancellationToken);
 
-        var repository = scope.ServiceProvider.GetRequiredService<IOutboxRepository>();
-        var handler = scope.ServiceProvider.GetRequiredService<THandler>();
+        var workers = Enumerable
+            .Range(1, Math.Max(1, options.WorkersCount))
+            .Select(_ => WorkerAsync(cancellationToken));
 
-        while (!cancellationToken.IsCancellationRequested)
+        await Task.WhenAll(workers);
+
+        return;
+
+        async Task WorkerAsync(CancellationToken stoppingToken)
         {
-            await ProcessingLoopAsync(repository, handler, cancellationToken);
+            using var scope = _serviceProvider.CreateScope();
 
-            await Task.Delay(options.PollDelay, cancellationToken);
+            var provider = scope.ServiceProvider.GetRequiredService<IOutboxProvider>();
+
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                try
+                {
+                    await HandleLoopAsync(provider, options, stoppingToken);
+                    await Task.Delay(options.PollDelay.Jitter(), stoppingToken);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    // Graceful shutdown
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    _logger.ErrorOutboxBackgroundService(typeof(TPayload).Name, ex);
+
+                    // Prevent tight loop on errors
+                    await Task.Delay(options.FailureDelay.Jitter(), stoppingToken);
+                }
+            }
         }
     }
 
-    private async Task ProcessingLoopAsync(
-        IOutboxRepository repository,
-        IOutboxHandler<TPayload> handler,
+    private async Task HandleLoopAsync(
+        IOutboxProvider provider,
+        IOutboxRunnerOptions options,
         CancellationToken cancellationToken)
     {
         bool succeededProcessing;
-        do
-        {
-            using var handleCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            handleCancellation.CancelAfter(_options.CurrentValue.HandleTimeout);
-
-            succeededProcessing = await TryProcessingMessagesAsync(repository, handler, handleCancellation.Token);
-        }
+        do succeededProcessing = await TryProcessingMessagesAsync(provider, options, cancellationToken);
         while (succeededProcessing && !cancellationToken.IsCancellationRequested);
     }
 
     private async Task<bool> TryProcessingMessagesAsync(
-        IOutboxRepository repository,
-        IOutboxHandler<TPayload> handler,
+        IOutboxProvider provider,
+        IOutboxRunnerOptions options,
         CancellationToken cancellationToken)
     {
-        using var scope = new TransactionScope(
-            TransactionScopeOption.Required,
-            new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted },
-            TransactionScopeAsyncFlowOption.Enabled);
+        using var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cancellationTokenSource.CancelAfter(options.HandleTimeout);
 
-        var messages = await repository
-            .ListAsync<TPayload>(_options.CurrentValue.BufferSize, cancellationToken)
-            .ToArrayAsync(cancellationToken);
+        var loopTasks = await provider
+            .GetAsync<TPayload>(options.BufferSize, options.Visibility, cancellationTokenSource.Token)
+            .ChunkAsync(options.PerBufferCount, cancellationTokenSource.Token)
+            .Select(g => LoopAsync(g, cancellationTokenSource.Token))
+            .ToArrayAsync(cancellationTokenSource.Token);
 
-        if (messages is [])
+        if (loopTasks is [])
             return false;
 
-        await handler.HandleAsync(messages.Select(m => m.Payload), cancellationToken);
-        await repository.DeleteAsync(
-            messageIds: messages.Select(m => m.Id),
-            cancellationToken);
+        var contexts = await Task.WhenAll(loopTasks);
 
-        scope.Complete();
+        await provider.RetryAsync(
+            messages: [.. contexts.SelectMany(c => c.Retries).Select(MapRetry)],
+            cancellationToken: cancellationTokenSource.Token);
 
-        return true;
+        await provider.DeleteAsync(
+            ids: [.. contexts.SelectMany(c => c.Success)],
+            policy: options.DeletePolicy,
+            cancellationToken: cancellationTokenSource.Token);
+
+        return contexts.Any(c => c.IsSuccess);
+
+        async Task<OutboxRunnerContext<TPayload>> LoopAsync(
+            IReadOnlyCollection<Entities.OutboxMessage<TPayload>> messages,
+            CancellationToken stoppingToken)
+        {
+            var context = new OutboxRunnerContext<TPayload>(_dateTimeProvider, messages);
+
+            try
+            {
+                using var scope = _serviceProvider.CreateScope();
+
+                var handler = scope.ServiceProvider.GetRequiredService<THandler>();
+
+                await handler.HandleAsync(
+                    messages: [.. messages.Select(c => MapMessage(c, context))],
+                    cancellationToken: stoppingToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.ErrorProcessingMessages(typeof(TPayload).Name, ex);
+                context.Fail(options.FailureDelay);
+            }
+
+            return context;
+        }
+
+        static OutboxMessage<TPayload> MapMessage(Entities.OutboxMessage<TPayload> message, OutboxRunnerContext<TPayload> context)
+            => new(message, context);
+
+        static Entities.OutboxMessage<TPayload> MapRetry(OutboxRunnerContext<TPayload>.RetryRequest retryRequest)
+        {
+            return new Entities.OutboxMessage<TPayload>(
+                Id: retryRequest.Message.Id,
+                Payload: retryRequest.Message.Payload,
+                Attempt: retryRequest.Message.Attempt + 1,
+                ScheduledAt: retryRequest.ScheduledAt,
+                CreatedAt: retryRequest.Message.CreatedAt);
+        }
     }
 }

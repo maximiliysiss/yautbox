@@ -1,4 +1,4 @@
-using Yautbox.Infrastructure;
+using Yautbox.Infrastructure.Waiter;
 
 namespace Yautbox.Postgres.Environment;
 
