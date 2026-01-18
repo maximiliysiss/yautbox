@@ -9,9 +9,9 @@ namespace Yautbox.Extensions.Outbox;
 
 public static class OutboxServiceExtensions
 {
-    public static async Task<OutboxMessageId> HandleAsync<TPayload>(
+    public static async Task<OutboxMessageId> HandleAsync<T>(
         this IOutboxService service,
-        TPayload message,
+        T message,
         DateTimeOffset? scheduledAt = null,
         CancellationToken cancellationToken = default)
     {

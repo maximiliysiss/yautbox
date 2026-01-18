@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Yautbox.Postgres.Environment;
 using Yautbox.Postgres.Migrations.Services;
 

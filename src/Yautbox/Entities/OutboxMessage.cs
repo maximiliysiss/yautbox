@@ -2,9 +2,9 @@ using System;
 
 namespace Yautbox.Entities;
 
-public record OutboxMessage<TPayload>(
+public record OutboxMessage<T>(
     OutboxMessageId Id,
-    TPayload Payload,
+    T Payload,
     DateTimeOffset CreatedAt,
     int Attempt,
     DateTimeOffset? ScheduledAt);

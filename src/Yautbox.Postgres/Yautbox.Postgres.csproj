@@ -10,4 +10,8 @@
       <ProjectReference Include="..\Yautbox\Yautbox.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="FluentMigrator" />
+    </ItemGroup>
+
 </Project>

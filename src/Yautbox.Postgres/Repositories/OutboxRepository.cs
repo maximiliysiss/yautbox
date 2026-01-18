@@ -1,6 +1,8 @@
 using System.Data.Common;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
+using Yautbox.Entities;
 using Yautbox.Postgres.Options;
 
 namespace Yautbox.Postgres.Repositories;

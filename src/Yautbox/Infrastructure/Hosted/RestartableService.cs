@@ -15,13 +15,13 @@ internal abstract class RestartableService : BackgroundService
 {
     private readonly AsyncRetryPolicy _retryPolicy;
 
-    private ILogger Logger { get; }
+    private readonly ILogger _logger;
 
     protected virtual string ServiceName => GetType().Name;
 
     protected RestartableService(ILogger logger, ISleepDurationProvider? sleepDurationProvider = null)
     {
-        Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _logger = logger;
 
         var delayProvider = sleepDurationProvider ?? DefaultSleepDurationProvider.Instance;
 
@@ -29,7 +29,7 @@ internal abstract class RestartableService : BackgroundService
             .Handle<Exception>(e => e is not OperationCanceledException)
             .WaitAndRetryForeverAsync(
                 delayProvider.GetSleepDelay,
-                (e, retryNumber, _) => Logger.RestartingService(ServiceName, retryNumber, e));
+                (e, retryNumber, _) => _logger.RestartingService(ServiceName, retryNumber, e));
     }
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken) => _retryPolicy.ExecuteAsync(ExecuteLoop, stoppingToken);
@@ -40,13 +40,11 @@ internal abstract class RestartableService : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            using var reloadTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
-                token1: stoppingToken,
-                token2: CancellationToken.None);
+            using var reloadTokenSource = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
 
             try
             {
-                Logger.StartingService(ServiceName);
+                _logger.StartingService(ServiceName);
                 await ExecuteAsync(reloadTokenSource);
             }
             catch (OperationCanceledException)
@@ -55,7 +53,7 @@ internal abstract class RestartableService : BackgroundService
                     throw;
 
                 if (reloadTokenSource.IsCancellationRequested)
-                    Logger.ConfigurationChanged(ServiceName);
+                    _logger.ConfigurationChanged(ServiceName);
             }
             catch (Exception)
             {

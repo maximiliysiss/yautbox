@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using Yautbox.Postgres.Migrations.Options;
 
 namespace Yautbox.Postgres.Migrations.Configuration;

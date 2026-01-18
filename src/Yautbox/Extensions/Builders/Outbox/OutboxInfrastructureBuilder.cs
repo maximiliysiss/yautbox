@@ -9,13 +9,13 @@ internal sealed class OutboxInfrastructureBuilder(IServiceCollection services) :
 {
     public IServiceCollection Services => services;
 
-    public IOutboxInfrastructureBuilder SetProvider<T>() where T : class, IOutboxProvider
+    public IOutboxInfrastructureBuilder SetProvider<T>(ServiceLifetime lifetime = ServiceLifetime.Scoped) where T : class, IOutboxProvider
     {
-        services.TryAddScoped<IOutboxProvider, T>();
+        services.TryAdd(ServiceDescriptor.Describe(typeof(IOutboxProvider), typeof(T), lifetime));
         return this;
     }
 
-    public IOutboxInfrastructureBuilder SetReadinessWaiter<T>() where T : class, IInfrastructureReadinessWaiter
+    public IOutboxInfrastructureBuilder SetWaiter<T>() where T : class, IInfrastructureReadinessWaiter
     {
         services.Decorate<IInfrastructureReadinessWaiter, T>();
         return this;
