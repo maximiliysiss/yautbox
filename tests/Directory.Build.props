@@ -4,12 +4,6 @@
     <TargetFramework>net9.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
-
-  <ItemGroup>
-    <InternalsVisibleTo Include="$(RootNamespace).UnitTests"/>
-    <InternalsVisibleTo Include="$(RootNamespace).IntegrationTests"/>
-    <InternalsVisibleTo Include="$(RootNamespace).Benchmark"/>
-    <InternalsVisibleTo Include="DynamicProxyGenAssembly2"/>
-  </ItemGroup>
 </Project>

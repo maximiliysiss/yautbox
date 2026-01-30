@@ -28,4 +28,10 @@ internal static partial class LoggerExtensions
 
     [LoggerMessage(8, LogLevel.Error, "Error processing outbox messages of type {type}")]
     public static partial void ErrorProcessingMessages(this ILogger logger, string type, Exception exception);
+
+    [LoggerMessage(9, LogLevel.Information, "Outbox cleanup is disabled for service {serviceName}.")]
+    public static partial void OutboxCleanupIsDisabled(this ILogger logger, string serviceName);
+
+    [LoggerMessage(10, LogLevel.Warning, "Invalid time to live interval for service {serviceName}: {interval}.")]
+    public static partial void InvalidTimeToLiveInterval(this ILogger logger, string serviceName, TimeSpan interval);
 }

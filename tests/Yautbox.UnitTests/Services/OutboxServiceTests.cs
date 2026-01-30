@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 using Xunit;
 using Yautbox.Entities;
@@ -11,6 +12,7 @@ using Yautbox.Extensions.Outbox;
 using Yautbox.Infrastructure.DateTime;
 using Yautbox.Infrastructure.Waiter;
 using Yautbox.Provider;
+using Yautbox.Registy;
 using Yautbox.Services;
 
 namespace Yautbox.UnitTests.Services;
@@ -25,7 +27,7 @@ public class OutboxServiceTests
 
         var outboxProvider = Substitute.For<IOutboxProvider>();
         outboxProvider
-            .AddAsync(Arg.Any<IReadOnlyCollection<OutboxMessage<Message>>>(), Arg.Any<CancellationToken>())
+            .AddAsync(Arg.Any<string>(), Arg.Any<IReadOnlyCollection<OutboxMessage<Message>>>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyCollection<OutboxMessageId>>([OutboxMessageId.Empty]))
             .AndDoes(c => outboxMessages.AddRange(c.Arg<IReadOnlyCollection<OutboxMessage<Message>>>()));
 
@@ -95,11 +97,15 @@ public class OutboxServiceTests
                 .Returns(Task.CompletedTask);
         }
 
+        var outboxRegistry =
+            new OutboxRegistry(new OptionsManager<OutboxRegistryOptions>(new OptionsFactory<OutboxRegistryOptions>([], [])));
+
         return new OutboxService(
             outboxProvider ?? Substitute.For<IOutboxProvider>(),
             NullLogger<OutboxService>.Instance,
             waiter,
-            dateTimeProvider ?? new DateTimeProvider());
+            dateTimeProvider ?? new DateTimeProvider(),
+            outboxRegistry);
     }
 
     private sealed class Message;

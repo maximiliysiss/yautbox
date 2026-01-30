@@ -5,28 +5,33 @@ namespace Yautbox.Runner.Options;
 public interface IOutboxRunnerOptions
 {
     /// <summary>
-    /// Delay between outbox cycles when there are no new records. Default value is 5 seconds + jitter
+    /// Outbox handler key. Default is typeof(TPayload).AssemblyQualifiedName without version, culture, and public key token
+    /// </summary>
+    string? Identifier { get; }
+
+    /// <summary>
+    /// Delay between outbox cycles when there are no new records. The default value is 5 seconds + jitter
     /// </summary>
     TimeSpan PollDelay { get; }
 
     /// <summary>
-    /// Count of outbox messages which will be handled. Default value is 1000
+    /// Count of outbox messages which will be handled. The default value is 1000
     /// </summary>
     int BufferSize { get; }
 
     /// <summary>
-    /// Timeout to handle all messages in one buffer. Default value is 30 minutes
+    /// Timeout to handle all messages in one buffer. The default value is 30 minutes
     /// </summary>
     TimeSpan HandleTimeout { get; }
 
     /// <summary>
-    /// Is enabled this outbox handler or not. Default value is true
+    /// Is enabled this outbox handler or not? Default value is true
     /// </summary>
-    bool IsDisabled { get; }
+    bool IsEnabled { get; }
 
     /// <summary>
-    /// Count of parallel workers inside background job. Default value is 1
-    /// WARNING: it can increase count of database connections
+    /// Count of parallel workers inside a background job. Default value is 1
+    /// WARNING: it can increase the count of database connections
     /// </summary>
     int WorkersCount { get; }
 
@@ -47,7 +52,12 @@ public interface IOutboxRunnerOptions
 
     /// <summary>
     /// Visibility timeout for processing messages. Messages being processed will not be visible to other processors for this duration.
-    /// Default is 10 minute
+    /// Default is 10 minutes
     /// </summary>
     TimeSpan Visibility { get; }
+
+    /// <summary>
+    /// Interval for cleanup old-handled messages. Default is null (aka off)
+    /// </summary>
+    TimeSpan? BackupInterval { get; }
 }

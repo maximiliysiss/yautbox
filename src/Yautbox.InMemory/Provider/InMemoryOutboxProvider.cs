@@ -12,7 +12,7 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
 {
     private long _index;
 
-    private readonly ConcurrentDictionary<Type, Channel<object>> _inMemoryQueue = [];
+    private readonly ConcurrentDictionary<string, Channel<object>> _inMemoryQueue = [];
     private readonly ConcurrentDictionary<OutboxMessageId, int> _enqueuedQueue = [];
 
     private readonly InMemoryOutboxOptions _options;
@@ -25,11 +25,12 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
     }
 
     public Task<IReadOnlyCollection<OutboxMessage<T>>> GetAsync<T>(
+        string identifier,
         int count,
         TimeSpan visibility,
         CancellationToken cancellationToken)
     {
-        if (!_inMemoryQueue.TryGetValue(typeof(T), out var inMemoryQueue))
+        if (!_inMemoryQueue.TryGetValue(identifier, out var inMemoryQueue))
             return Task.FromResult<IReadOnlyCollection<OutboxMessage<T>>>([]);
 
         var reader = inMemoryQueue.Reader;
@@ -69,6 +70,7 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
     }
 
     public async Task<IReadOnlyCollection<OutboxMessageId>> AddAsync<T>(
+        string identifier,
         IReadOnlyCollection<OutboxMessage<T>> messages,
         CancellationToken cancellationToken)
     {
@@ -76,7 +78,7 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
             return [];
 
         var inMemoryQueue = _inMemoryQueue.GetOrAdd(
-            key: typeof(T),
+            key: identifier,
             valueFactory: _ => Channel.CreateBounded<object>(_options.Capacity));
 
         var localIds = new List<OutboxMessageId>(messages.Count);
@@ -138,13 +140,16 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
         return Task.CompletedTask;
     }
 
+    public Task CleanAsync(DateTimeOffset olderThan, CancellationToken cancellationToken) => Task.CompletedTask;
+
     public Task RetryAsync<T>(
+        string identifier,
         IReadOnlyCollection<OutboxMessage<T>> messages,
         CancellationToken cancellationToken)
     {
         foreach (var (outboxMessageId, _, _, currentAttempt, _) in messages)
             _enqueuedQueue.TryUpdate(key: outboxMessageId, newValue: currentAttempt, comparisonValue: currentAttempt - 1);
 
-        return AddAsync(messages, cancellationToken);
+        return AddAsync(identifier, messages, cancellationToken);
     }
 }

@@ -8,6 +8,7 @@ using Yautbox.Entities;
 using Yautbox.InMemory.Infrastructure;
 using Yautbox.InMemory.Options;
 using Yautbox.InMemory.Provider;
+using Yautbox.InMemory.UnitTests.Extensions;
 using Yautbox.Runner.Options;
 
 namespace Yautbox.InMemory.UnitTests.Provider;
@@ -22,6 +23,30 @@ public class InMemoryOutboxProviderTests
 
         // Act
         var batch = await provider.GetAsync<Message>(
+            identifier: typeof(Message).GetVersionFreeFullName(),
+            count: 10,
+            visibility: TimeSpan.FromSeconds(1),
+            cancellationToken: CancellationToken.None);
+
+        // Assert
+        batch.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetAsync_ShouldReturnEmpty_WhenTypeWasNotEnqueued()
+    {
+        // Arrange
+        var provider = Create();
+        var outboxMessage = CreateMessage();
+
+        await provider.AddAsync(
+            identifier: typeof(Message).GetVersionFreeFullName(),
+            messages: [outboxMessage],
+            cancellationToken: CancellationToken.None);
+
+        // Act
+        var batch = await provider.GetAsync<OtherMessage>(
+            identifier: typeof(OtherMessage).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
             cancellationToken: CancellationToken.None);
@@ -39,10 +64,12 @@ public class InMemoryOutboxProviderTests
 
         // Act
         var ids = await provider.AddAsync(
+            identifier: typeof(Message).GetVersionFreeFullName(),
             messages: [outboxMessage],
             cancellationToken: CancellationToken.None);
 
         var batch = await provider.GetAsync<Message>(
+            identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
             cancellationToken: CancellationToken.None);
@@ -58,6 +85,38 @@ public class InMemoryOutboxProviderTests
     }
 
     [Fact]
+    public async Task GetAsync_ShouldReturnOnlyMessagesForRequestedType()
+    {
+        // Arrange
+        var provider = Create();
+        var firstMessage = CreateMessage();
+        var secondMessage = CreateMessage();
+        var otherMessage = CreateOtherMessage();
+
+        await provider.AddAsync(
+            identifier: typeof(Message).GetVersionFreeFullName(),
+            messages: [firstMessage, secondMessage],
+            cancellationToken: CancellationToken.None);
+
+        await provider.AddAsync(
+            identifier: typeof(OtherMessage).GetVersionFreeFullName(),
+            messages: [otherMessage],
+            cancellationToken: CancellationToken.None);
+
+        // Act
+        var batch = await provider.GetAsync<Message>(
+            identifier: typeof(Message).GetVersionFreeFullName(),
+            count: 10,
+            visibility: TimeSpan.FromSeconds(1),
+            cancellationToken: CancellationToken.None);
+
+        // Assert
+        batch.Should().HaveCount(2);
+        batch.Select(message => message.Payload.Value).Should().BeEquivalentTo(
+            [firstMessage.Payload.Value, secondMessage.Payload.Value]);
+    }
+
+    [Fact]
     public async Task GetAsync_ShouldReturnBatch_WhenGetByPage()
     {
         // Arrange
@@ -70,15 +129,18 @@ public class InMemoryOutboxProviderTests
 
         // Act
         var ids = await provider.AddAsync(
+            identifier: typeof(Message).GetVersionFreeFullName(),
             messages: outboxMessages,
             cancellationToken: CancellationToken.None);
 
         var firstBatch = await provider.GetAsync<Message>(
+            identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
             cancellationToken: CancellationToken.None);
 
         var secondBatch = await provider.GetAsync<Message>(
+            identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
             cancellationToken: CancellationToken.None);
@@ -106,10 +168,12 @@ public class InMemoryOutboxProviderTests
 
         // Act
         var ids = await provider.AddAsync(
+            identifier: typeof(Message).GetVersionFreeFullName(),
             messages: [outboxMessage],
             cancellationToken: CancellationToken.None);
 
         var firstBatch = await provider.GetAsync<Message>(
+            identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
             cancellationToken: CancellationToken.None);
@@ -117,6 +181,7 @@ public class InMemoryOutboxProviderTests
         await Task.Delay(TimeSpan.FromSeconds(2));
 
         var secondBatch = await provider.GetAsync<Message>(
+            identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
             cancellationToken: CancellationToken.None);
@@ -138,10 +203,12 @@ public class InMemoryOutboxProviderTests
 
         // Act
         var ids = await provider.AddAsync(
+            identifier: typeof(Message).GetVersionFreeFullName(),
             messages: [outboxMessage],
             cancellationToken: CancellationToken.None);
 
         var firstBatch = await provider.GetAsync<Message>(
+            identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
             cancellationToken: CancellationToken.None);
@@ -149,6 +216,7 @@ public class InMemoryOutboxProviderTests
         await Task.Delay(TimeSpan.FromSeconds(2));
 
         var secondBatch = await provider.GetAsync<Message>(
+            identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
             cancellationToken: CancellationToken.None);
@@ -176,10 +244,12 @@ public class InMemoryOutboxProviderTests
 
         // Act
         var ids = await provider.AddAsync(
+            identifier: typeof(Message).GetVersionFreeFullName(),
             messages: [outboxMessage],
             cancellationToken: CancellationToken.None);
 
         var firstBatch = await provider.GetAsync<Message>(
+            identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
             cancellationToken: CancellationToken.None);
@@ -192,6 +262,7 @@ public class InMemoryOutboxProviderTests
         await Task.Delay(TimeSpan.FromSeconds(2));
 
         var secondBatch = await provider.GetAsync<Message>(
+            identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
             cancellationToken: CancellationToken.None);
@@ -218,12 +289,14 @@ public class InMemoryOutboxProviderTests
 
         // Act
         var ids = await provider.AddAsync(
+            identifier: typeof(Message).GetVersionFreeFullName(),
             messages: [outboxMessage],
             cancellationToken: CancellationToken.None);
 
         await provider.CancelAsync(ids, CancellationToken.None);
 
         var firstBatch = await provider.GetAsync<Message>(
+            identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
             cancellationToken: CancellationToken.None);
@@ -245,10 +318,12 @@ public class InMemoryOutboxProviderTests
 
         // Act
         var ids = await provider.AddAsync(
+            identifier: typeof(Message).GetVersionFreeFullName(),
             messages: [outboxMessage],
             cancellationToken: CancellationToken.None);
 
         var firstBatch = await provider.GetAsync<Message>(
+            identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
             cancellationToken: CancellationToken.None);
@@ -257,12 +332,14 @@ public class InMemoryOutboxProviderTests
         var retriedMessage = getMessage with { Attempt = getMessage.Attempt + 1 };
 
         await provider.RetryAsync(
+            identifier: typeof(Message).GetVersionFreeFullName(),
             [retriedMessage],
             cancellationToken: CancellationToken.None);
 
         await Task.Delay(TimeSpan.FromSeconds(2));
 
         var secondBatch = await provider.GetAsync<Message>(
+            identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
             cancellationToken: CancellationToken.None);
@@ -281,6 +358,47 @@ public class InMemoryOutboxProviderTests
             .Which.Should().BeEquivalentTo(retriedMessage);
     }
 
+    [Fact]
+    public async Task AddAsync_ShouldReturnEmpty_WhenNoMessagesProvided()
+    {
+        // Arrange
+        var provider = Create();
+
+        // Act
+        var ids = await provider.AddAsync<Message>(
+            identifier: typeof(Message).GetVersionFreeFullName(),
+            messages: [],
+            cancellationToken: CancellationToken.None);
+
+        // Assert
+        ids.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task AddAsync_ShouldPreserveProvidedId()
+    {
+        // Arrange
+        var provider = Create();
+        var messageId = new OutboxMessageId(42);
+        var outboxMessage = CreateMessage() with { Id = messageId };
+
+        // Act
+        var ids = await provider.AddAsync(
+            identifier: typeof(Message).GetVersionFreeFullName(),
+            messages: [outboxMessage],
+            cancellationToken: CancellationToken.None);
+
+        var batch = await provider.GetAsync<Message>(
+            identifier: typeof(Message).GetVersionFreeFullName(),
+            count: 10,
+            visibility: TimeSpan.FromSeconds(1),
+            cancellationToken: CancellationToken.None);
+
+        // Assert
+        ids.Should().ContainSingle().Which.Should().Be(messageId);
+        batch.Should().ContainSingle().Which.Should().Be(outboxMessage);
+    }
+
     private static InMemoryOutboxProvider Create(InMemoryOutboxOptions? options = null, IDateTimeProvider? dateTimeProvider = null)
         => new(options ?? new InMemoryOutboxOptions(), dateTimeProvider ?? new DateTimeProvider());
 
@@ -296,5 +414,18 @@ public class InMemoryOutboxProviderTests
             ScheduledAt: scheduledAt);
     }
 
+    private static OutboxMessage<OtherMessage> CreateOtherMessage(
+        DateTimeOffset? createdAt = null,
+        DateTimeOffset? scheduledAt = null)
+    {
+        return new OutboxMessage<OtherMessage>(
+            Id: OutboxMessageId.Empty,
+            Payload: new OtherMessage(Environment.TickCount),
+            CreatedAt: createdAt ?? DateTimeOffset.UtcNow,
+            Attempt: 0,
+            ScheduledAt: scheduledAt);
+    }
+
     private sealed record Message(int Value);
+    private sealed record OtherMessage(int Value);
 }

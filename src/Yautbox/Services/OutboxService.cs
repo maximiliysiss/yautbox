@@ -9,6 +9,7 @@ using Yautbox.Extensions.Logger;
 using Yautbox.Infrastructure.DateTime;
 using Yautbox.Infrastructure.Waiter;
 using Yautbox.Provider;
+using Yautbox.Registy;
 
 namespace Yautbox.Services;
 
@@ -18,6 +19,8 @@ internal sealed class OutboxService : IOutboxService
 
     private readonly IInfrastructureReadinessWaiter _waiter;
 
+    private readonly IOutboxRegistry _registry;
+
     private readonly ILogger<OutboxService> _logger;
 
     private readonly IDateTimeProvider _dateTimeProvider;
@@ -26,12 +29,14 @@ internal sealed class OutboxService : IOutboxService
         IOutboxProvider outboxProvider,
         ILogger<OutboxService> logger,
         IInfrastructureReadinessWaiter waiter,
-        IDateTimeProvider dateTimeProvider)
+        IDateTimeProvider dateTimeProvider,
+        IOutboxRegistry registry)
     {
         _outboxProvider = outboxProvider;
         _logger = logger;
         _waiter = waiter;
         _dateTimeProvider = dateTimeProvider;
+        _registry = registry;
     }
 
     public async Task<IEnumerable<OutboxMessageId>> HandleAsync<T>(
@@ -44,6 +49,7 @@ internal sealed class OutboxService : IOutboxService
         _logger.AddedOutboxMessage();
 
         var outboxMessageIds = await _outboxProvider.AddAsync(
+            identifier: _registry.GetIdentifier<T>(),
             messages: [.. messages.Select(Map)],
             cancellationToken: cancellationToken);
 

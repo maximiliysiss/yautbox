@@ -7,6 +7,7 @@ using Yautbox.Extensions.Builders.Outbox;
 using Yautbox.Handlers;
 using Yautbox.Infrastructure.DateTime;
 using Yautbox.Infrastructure.Waiter;
+using Yautbox.Registy;
 using Yautbox.Runner;
 using Yautbox.Runner.Options;
 using Yautbox.Services;
@@ -31,7 +32,13 @@ public static class ServiceCollectionExtensions
         services
             .AddOptions<DefaultRunnerOptions>();
 
-        services.TryAddScoped<IOutboxService, OutboxService>();
+        services
+            .TryAddScoped<IOutboxService, OutboxService>();
+
+        services
+            .AddOptions<OutboxRegistryOptions>()
+            .Services
+            .TryAddScoped<IOutboxRegistry, OutboxRegistry>();
 
         return services;
     }
@@ -47,11 +54,25 @@ public static class ServiceCollectionExtensions
             .TryAdd(ServiceDescriptor.Describe(typeof(THandler), typeof(THandler), lifetime));
 
         services
-            .AddHostedService(ConfigureRunner);
+            .AddHostedService(ConfigureRunner)
+            .AddHostedService(ConfigureCleaner);
+
+        services
+            .AddOptions<OutboxRegistryOptions>()
+            .Configure<IServiceProvider>(ConfigureRegistry);
 
         return builder;
 
-        OutboxRunner<THandler, TPayload> ConfigureRunner(IServiceProvider serviceProvider)
+        OutboxHandlerRunner<THandler, TPayload> ConfigureRunner(IServiceProvider serviceProvider)
+            => ActivatorUtilities.CreateInstance<OutboxHandlerRunner<THandler, TPayload>>(serviceProvider, CreateOptions(serviceProvider));
+
+        OutboxCleanerRunner<THandler, TPayload> ConfigureCleaner(IServiceProvider serviceProvider)
+            => ActivatorUtilities.CreateInstance<OutboxCleanerRunner<THandler, TPayload>>(serviceProvider, CreateOptions(serviceProvider));
+
+        void ConfigureRegistry(OutboxRegistryOptions options, IServiceProvider serviceProvider)
+            => options.Register<TPayload>(CreateOptions(serviceProvider));
+
+        IOptionsMonitor<IOutboxRunnerOptions> CreateOptions(IServiceProvider serviceProvider)
         {
             var options = serviceProvider.GetService(builder._optionsType);
 
@@ -60,7 +81,7 @@ public static class ServiceCollectionExtensions
 
             options ??= serviceProvider.GetRequiredService(typeof(IOptionsMonitor<>).MakeGenericType(builder._optionsType));
 
-            return ActivatorUtilities.CreateInstance<OutboxRunner<THandler, TPayload>>(serviceProvider, options);
+            return (IOptionsMonitor<IOutboxRunnerOptions>)options;
         }
     }
 

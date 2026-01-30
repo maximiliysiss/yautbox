@@ -14,11 +14,12 @@ using Yautbox.Infrastructure.DateTime;
 using Yautbox.Infrastructure.Hosted;
 using Yautbox.Infrastructure.Waiter;
 using Yautbox.Provider;
+using Yautbox.Registy;
 using Yautbox.Runner.Options;
 
 namespace Yautbox.Runner;
 
-internal class OutboxRunner<THandler, TPayload> : RestartableService where THandler : IOutboxHandler<TPayload>
+internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService where THandler : IOutboxHandler<TPayload>
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly IInfrastructureReadinessWaiter _readinessWaiter;
@@ -26,13 +27,13 @@ internal class OutboxRunner<THandler, TPayload> : RestartableService where THand
 
     private readonly IOptionsMonitor<IOutboxRunnerOptions> _options;
 
-    private readonly ILogger<OutboxRunner<THandler, TPayload>> _logger;
+    private readonly ILogger<OutboxHandlerRunner<THandler, TPayload>> _logger;
 
-    public OutboxRunner(
+    public OutboxHandlerRunner(
         IServiceProvider serviceProvider,
         IOptionsMonitor<IOutboxRunnerOptions> options,
         IInfrastructureReadinessWaiter readinessWaiter,
-        ILogger<OutboxRunner<THandler, TPayload>> logger,
+        ILogger<OutboxHandlerRunner<THandler, TPayload>> logger,
         IDateTimeProvider dateTimeProvider)
         : base(logger)
     {
@@ -54,14 +55,21 @@ internal class OutboxRunner<THandler, TPayload> : RestartableService where THand
 
         var options = _options.CurrentValue;
 
-        if (options.IsDisabled)
+        if (!options.IsEnabled)
         {
             _logger.DisableOutbox(ServiceName);
             await Task.Delay(Timeout.Infinite, cancellationToken);
+            return;
         }
 
         // Initial jitter to spread load
         await Task.Delay(TimeSpan.Zero.Jitter(), cancellationToken);
+
+        using var serviceScope = _serviceProvider.CreateScope();
+
+        var registry = serviceScope.ServiceProvider.GetRequiredService<IOutboxRegistry>();
+
+        var identifier = registry.GetIdentifier<TPayload>();
 
         var workers = Enumerable
             .Range(1, Math.Max(1, options.WorkersCount))
@@ -73,15 +81,16 @@ internal class OutboxRunner<THandler, TPayload> : RestartableService where THand
 
         async Task WorkerAsync(CancellationToken stoppingToken)
         {
-            using var scope = _serviceProvider.CreateScope();
-
-            var provider = scope.ServiceProvider.GetRequiredService<IOutboxProvider>();
-
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
-                    await HandleLoopAsync(provider, options, stoppingToken);
+                    using var scope = serviceScope;
+
+                    var provider = scope.ServiceProvider.GetRequiredService<IOutboxProvider>();
+                    var handler = scope.ServiceProvider.GetRequiredService<THandler>();
+
+                    await HandleLoopAsync(identifier, provider, handler, options, stoppingToken);
                     await Task.Delay(options.PollDelay.Jitter(), stoppingToken);
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -101,28 +110,34 @@ internal class OutboxRunner<THandler, TPayload> : RestartableService where THand
     }
 
     private async Task HandleLoopAsync(
+        string identifier,
         IOutboxProvider provider,
+        THandler handler,
         IOutboxRunnerOptions options,
         CancellationToken cancellationToken)
     {
         bool succeededProcessing;
-        do succeededProcessing = await TryProcessingMessagesAsync(provider, options, cancellationToken);
+        do succeededProcessing = await TryProcessingMessagesAsync(identifier, provider, handler, options, cancellationToken);
         while (succeededProcessing && !cancellationToken.IsCancellationRequested);
     }
 
     private async Task<bool> TryProcessingMessagesAsync(
+        string identifier,
         IOutboxProvider provider,
+        THandler handler,
         IOutboxRunnerOptions options,
         CancellationToken cancellationToken)
     {
         using var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         cancellationTokenSource.CancelAfter(options.HandleTimeout);
 
+        var stoppingToken = cancellationTokenSource.Token;
+
         var loopTasks = await provider
-            .GetAsync<TPayload>(options.BufferSize, options.Visibility, cancellationTokenSource.Token)
-            .ChunkAsync(options.PerBufferCount, cancellationTokenSource.Token)
-            .Select(g => LoopAsync(g, cancellationTokenSource.Token))
-            .ToArrayAsync(cancellationTokenSource.Token);
+            .GetAsync<TPayload>(identifier, options.BufferSize, options.Visibility, stoppingToken)
+            .ChunkAsync(options.PerBufferCount, stoppingToken)
+            .Select(g => LoopAsync(g, stoppingToken))
+            .ToArrayAsync(stoppingToken);
 
         if (loopTasks is [])
             return false;
@@ -130,13 +145,14 @@ internal class OutboxRunner<THandler, TPayload> : RestartableService where THand
         var contexts = await Task.WhenAll(loopTasks);
 
         await provider.RetryAsync(
+            identifier: identifier,
             messages: [.. contexts.SelectMany(c => c.Retries).Select(MapRetry)],
-            cancellationToken: cancellationTokenSource.Token);
+            cancellationToken: stoppingToken);
 
         await provider.DeleteAsync(
             ids: [.. contexts.SelectMany(c => c.Success)],
             policy: options.DeletePolicy,
-            cancellationToken: cancellationTokenSource.Token);
+            cancellationToken: stoppingToken);
 
         return contexts.Any(c => c.IsSuccess);
 
@@ -148,10 +164,6 @@ internal class OutboxRunner<THandler, TPayload> : RestartableService where THand
 
             try
             {
-                using var scope = _serviceProvider.CreateScope();
-
-                var handler = scope.ServiceProvider.GetRequiredService<THandler>();
-
                 await handler.HandleAsync(
                     messages: [.. messages.Select(c => MapMessage(c, context))],
                     cancellationToken: stoppingToken);
