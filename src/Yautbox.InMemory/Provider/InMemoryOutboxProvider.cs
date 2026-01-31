@@ -205,6 +205,11 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
         foreach (var (outboxMessageId, _, _, currentAttempt, _) in messages)
             _enqueuedQueue.TryUpdate(key: outboxMessageId, newValue: currentAttempt, comparisonValue: currentAttempt - 1);
 
+        var ids = messages.Select(m => m.Id).ToArray();
+
+        foreach (var (_, ev) in _lockers)
+            ev.Release(ids);
+
         return AddAsync(identifier, messages, cancellationToken);
     }
 }
