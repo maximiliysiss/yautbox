@@ -15,4 +15,5 @@ internal sealed class DefaultRunnerOptions : IOutboxRunnerOptions
     public TimeSpan FailureDelay { get; set; } = TimeSpan.FromSeconds(2);
     public TimeSpan Visibility { get; set; } = TimeSpan.FromMinutes(10);
     public TimeSpan? BackupInterval { get; set; }
+    public OutboxExecutionPolicy ExecutionPolicy { get; set; } = OutboxExecutionPolicy.Parallel;
 }

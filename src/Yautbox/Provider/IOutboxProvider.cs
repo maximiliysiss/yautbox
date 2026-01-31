@@ -16,6 +16,7 @@ public interface IOutboxProvider
         string identifier,
         int count,
         TimeSpan visibility,
+        OutboxExecutionPolicy policy,
         CancellationToken cancellationToken);
 
     /// <summary>

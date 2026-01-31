@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Yautbox.Extensions.DateTime;
 using Yautbox.Extensions.Logger;
+using Yautbox.Extensions.Options;
 using Yautbox.Handlers;
 using Yautbox.Infrastructure.DateTime;
 using Yautbox.Infrastructure.Hosted;
@@ -48,11 +49,12 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
 
         var options = _options.CurrentValue;
 
-        Action? invalidMessage = options switch
+        Action? invalidAction = options switch
         {
             { IsEnabled: false } => () => _logger.DisableOutbox(ServiceName),
             { BackupInterval: null } => () => _logger.OutboxCleanupIsDisabled(ServiceName),
-            var o when o.BackupInterval <= TimeSpan.Zero => () => _logger.InvalidTimeToLiveInterval(ServiceName, o.BackupInterval.Value),
+            _ when options.Validate() is ValidationResult.FailureValidationResult r
+                => () => _logger.InvalidOutboxOptions(ServiceName, r.ErrorMessage),
             _ => null,
         };
 
@@ -63,9 +65,9 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
             return;
         }
 
-        if (invalidMessage is not null)
+        if (invalidAction is not null)
         {
-            invalidMessage();
+            invalidAction();
             await Task.Delay(Timeout.Infinite, cancellationToken);
             return;
         }

@@ -139,6 +139,7 @@ public class ServiceCollectionExtensionsTests
             string identifier,
             int count,
             TimeSpan visibility,
+            OutboxExecutionPolicy policy,
             CancellationToken cancellationToken) => throw new NotImplementedException();
 
         public Task<IReadOnlyCollection<OutboxMessageId>> AddAsync<T>(

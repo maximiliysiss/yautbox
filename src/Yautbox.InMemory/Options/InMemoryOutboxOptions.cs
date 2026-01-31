@@ -3,7 +3,7 @@ namespace Yautbox.InMemory.Options;
 public sealed class InMemoryOutboxOptions
 {
     /// <summary>
-    /// Capacity for inner queue. Default is 1000 per outbox handler
+    /// Capacity for inner queue. Default is 10000 per outbox handler
     /// </summary>
-    public int Capacity { get; set; } = 1000;
+    public int Capacity { get; set; } = 10000;
 }

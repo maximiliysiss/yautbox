@@ -18,4 +18,8 @@
     </Compile>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Collections\" />
+  </ItemGroup>
+
 </Project>

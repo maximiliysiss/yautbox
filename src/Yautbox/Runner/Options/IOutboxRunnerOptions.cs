@@ -60,4 +60,9 @@ public interface IOutboxRunnerOptions
     /// Interval for cleanup old-handled messages. Default is null (aka off)
     /// </summary>
     TimeSpan? BackupInterval { get; }
+
+    /// <summary>
+    /// Execution policy for outbox handlers. Default is parallel
+    /// </summary>
+    OutboxExecutionPolicy ExecutionPolicy { get; }
 }

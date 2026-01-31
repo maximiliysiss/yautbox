@@ -34,4 +34,7 @@ internal static partial class LoggerExtensions
 
     [LoggerMessage(10, LogLevel.Warning, "Invalid time to live interval for service {serviceName}: {interval}.")]
     public static partial void InvalidTimeToLiveInterval(this ILogger logger, string serviceName, TimeSpan interval);
+
+    [LoggerMessage(11, LogLevel.Error, "Invalid outbox options for service {serviceName}: {errorMessage}")]
+    public static partial void InvalidOutboxOptions(this ILogger logger, string serviceName, string errorMessage);
 }

@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Transactions;
 using FluentAssertions;
 using Xunit;
 using Yautbox.Entities;
@@ -26,6 +28,7 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
+            policy: OutboxExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         // Assert
@@ -49,6 +52,7 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(OtherMessage).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
+            policy: OutboxExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         // Assert
@@ -72,6 +76,7 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
+            policy: OutboxExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         // Assert
@@ -108,6 +113,7 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
+            policy: OutboxExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         // Assert
@@ -137,12 +143,14 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
+            policy: OutboxExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         var secondBatch = await provider.GetAsync<Message>(
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
+            policy: OutboxExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         // Assert
@@ -176,6 +184,7 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
+            policy: OutboxExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         await Task.Delay(TimeSpan.FromSeconds(2));
@@ -184,6 +193,7 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
+            policy: OutboxExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         // Assert
@@ -211,6 +221,7 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
+            policy: OutboxExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         await Task.Delay(TimeSpan.FromSeconds(2));
@@ -219,6 +230,7 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
+            policy: OutboxExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         // Assert
@@ -252,6 +264,7 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
+            policy: OutboxExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         await provider.DeleteAsync(
@@ -265,6 +278,7 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
+            policy: OutboxExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         // Assert
@@ -299,6 +313,7 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
+            policy: OutboxExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         // Assert
@@ -326,6 +341,7 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
+            policy: OutboxExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         var getMessage = firstBatch.First();
@@ -342,6 +358,7 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
+            policy: OutboxExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         // Assert
@@ -375,6 +392,60 @@ public class InMemoryOutboxProviderTests
     }
 
     [Fact]
+    public async Task AddAsync_ShouldEnqueueOnlyAfterTransactionComplete()
+    {
+        // Arrange
+        var provider = Create();
+        var message = CreateMessage();
+        IReadOnlyCollection<OutboxMessageId> ids;
+
+        // Act
+        using (var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
+        {
+            ids = await provider.AddAsync(
+                identifier: typeof(Message).GetVersionFreeFullName(),
+                messages: [message],
+                cancellationToken: CancellationToken.None);
+
+            var batchBeforeCommit = await provider.GetAsync<Message>(
+                identifier: typeof(Message).GetVersionFreeFullName(),
+                count: 10,
+                visibility: TimeSpan.FromSeconds(1),
+                policy: OutboxExecutionPolicy.Parallel,
+                cancellationToken: CancellationToken.None);
+
+            batchBeforeCommit.Should().BeEmpty();
+            scope.Complete();
+        }
+
+        var batchAfterCommit = await WaitForBatchAsync(provider);
+
+        // Assert
+        ids.Should().ContainSingle().Which.Should().NotBe(OutboxMessageId.Empty);
+        batchAfterCommit.Should().ContainSingle().Which.Should().BeEquivalentTo(message with { Id = ids.Single() });
+    }
+
+    [Fact]
+    public async Task AddAsync_ShouldNotEnqueue_WhenTransactionNotCompleted()
+    {
+        // Arrange
+        var provider = Create();
+        var message = CreateMessage();
+
+        // Act
+        using (var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
+        {
+            await provider.AddAsync(
+                identifier: typeof(Message).GetVersionFreeFullName(),
+                messages: [message],
+                cancellationToken: CancellationToken.None);
+        }
+
+        // Assert
+        await WaitForNoBatchAsync(provider);
+    }
+
+    [Fact]
     public async Task AddAsync_ShouldPreserveProvidedId()
     {
         // Arrange
@@ -392,6 +463,7 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
+            policy: OutboxExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         // Assert
@@ -401,6 +473,48 @@ public class InMemoryOutboxProviderTests
 
     private static InMemoryOutboxProvider Create(InMemoryOutboxOptions? options = null, IDateTimeProvider? dateTimeProvider = null)
         => new(options ?? new InMemoryOutboxOptions(), dateTimeProvider ?? new DateTimeProvider());
+
+    private static async Task<IReadOnlyCollection<OutboxMessage<Message>>> WaitForBatchAsync(InMemoryOutboxProvider provider)
+    {
+        var timeout = TimeSpan.FromSeconds(2);
+        var start = DateTimeOffset.UtcNow;
+
+        while (DateTimeOffset.UtcNow - start < timeout)
+        {
+            var batch = await provider.GetAsync<Message>(
+                identifier: typeof(Message).GetVersionFreeFullName(),
+                count: 10,
+                visibility: TimeSpan.FromSeconds(1),
+                policy: OutboxExecutionPolicy.Parallel,
+                cancellationToken: CancellationToken.None);
+
+            if (batch.Count > 0)
+                return batch;
+
+            await Task.Delay(TimeSpan.FromMilliseconds(25));
+        }
+
+        return [];
+    }
+
+    private static async Task WaitForNoBatchAsync(InMemoryOutboxProvider provider)
+    {
+        var timeout = TimeSpan.FromSeconds(1);
+        var start = DateTimeOffset.UtcNow;
+
+        while (DateTimeOffset.UtcNow - start < timeout)
+        {
+            var batch = await provider.GetAsync<Message>(
+                identifier: typeof(Message).GetVersionFreeFullName(),
+                count: 10,
+                visibility: TimeSpan.FromSeconds(1),
+                policy: OutboxExecutionPolicy.Parallel,
+                cancellationToken: CancellationToken.None);
+
+            batch.Should().BeEmpty();
+            await Task.Delay(TimeSpan.FromMilliseconds(25));
+        }
+    }
 
     private static OutboxMessage<Message> CreateMessage(
         DateTimeOffset? createdAt = null,

@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using Yautbox.Extensions.DateTime;
 using Yautbox.Extensions.Enumerable;
 using Yautbox.Extensions.Logger;
+using Yautbox.Extensions.Options;
 using Yautbox.Handlers;
 using Yautbox.Infrastructure.DateTime;
 using Yautbox.Infrastructure.Hosted;
@@ -55,9 +56,17 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
 
         var options = _options.CurrentValue;
 
-        if (!options.IsEnabled)
+        Action? invalidAction = options switch
         {
-            _logger.DisableOutbox(ServiceName);
+            { IsEnabled: false } => () => _logger.DisableOutbox(ServiceName),
+            _ when options.Validate() is ValidationResult.FailureValidationResult r
+                => () => _logger.InvalidOutboxOptions(ServiceName, r.ErrorMessage),
+            _ => null,
+        };
+
+        if (invalidAction is not null)
+        {
+            invalidAction();
             await Task.Delay(Timeout.Infinite, cancellationToken);
             return;
         }
@@ -134,7 +143,7 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
         var stoppingToken = cancellationTokenSource.Token;
 
         var loopTasks = await provider
-            .GetAsync<TPayload>(identifier, options.BufferSize, options.Visibility, stoppingToken)
+            .GetAsync<TPayload>(identifier, options.BufferSize, options.Visibility, options.ExecutionPolicy, stoppingToken)
             .ChunkAsync(options.PerBufferCount, stoppingToken)
             .Select(g => LoopAsync(g, stoppingToken))
             .ToArrayAsync(stoppingToken);

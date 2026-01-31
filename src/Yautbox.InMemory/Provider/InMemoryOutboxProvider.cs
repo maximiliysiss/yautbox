@@ -1,10 +1,13 @@
 using System.Collections.Concurrent;
-using System.Threading.Channels;
+using System.Transactions;
 using Yautbox.Entities;
+using Yautbox.InMemory.Collections;
 using Yautbox.InMemory.Infrastructure;
 using Yautbox.InMemory.Options;
+using Yautbox.InMemory.Primitives;
 using Yautbox.Provider;
 using Yautbox.Runner.Options;
+using Transaction = Yautbox.InMemory.Transactions.Transaction;
 
 namespace Yautbox.InMemory.Provider;
 
@@ -12,8 +15,9 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
 {
     private long _index;
 
-    private readonly ConcurrentDictionary<string, Channel<object>> _inMemoryQueue = [];
+    private readonly ConcurrentDictionary<string, LimitedConcurrentDeque<object>> _inMemoryQueue = [];
     private readonly ConcurrentDictionary<OutboxMessageId, int> _enqueuedQueue = [];
+    private readonly ConcurrentDictionary<string, DynamicCountdownEvent<OutboxMessageId>> _lockers = [];
 
     private readonly InMemoryOutboxOptions _options;
     private readonly IDateTimeProvider _dateTimeProvider;
@@ -28,58 +32,78 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
         string identifier,
         int count,
         TimeSpan visibility,
+        OutboxExecutionPolicy policy,
         CancellationToken cancellationToken)
     {
         if (!_inMemoryQueue.TryGetValue(identifier, out var inMemoryQueue))
             return Task.FromResult<IReadOnlyCollection<OutboxMessage<T>>>([]);
 
-        var reader = inMemoryQueue.Reader;
-        var writer = inMemoryQueue.Writer;
+        DynamicCountdownEvent<OutboxMessageId>? locker = null;
+
+        if (policy is OutboxExecutionPolicy.Sequential)
+            locker = _lockers.GetOrAdd(identifier, _ => new DynamicCountdownEvent<OutboxMessageId>());
+
+        locker?.Wait();
 
         var batch = new List<OutboxMessage<T>>(count);
+        var ids = new List<OutboxMessageId>(count);
 
-        while (count > 0 && reader.TryRead(out var item))
+        while (count > 0 && inMemoryQueue.TryPopLeft(out var item))
         {
             var message = (OutboxMessage<T>)item;
 
-            if (!_enqueuedQueue.TryGetValue(message.Id, out var attempt))
+            if (!_enqueuedQueue.ContainsKey(message.Id))
                 continue;
 
             batch.Add(message);
-            count--;
+            ids.Add(message.Id);
 
-            _ = Task.Run(
-                function: () => RescheduleAsync(message, attempt),
-                cancellationToken: CancellationToken.None);
+            count--;
         }
+
+        var rescheduledMessages = batch
+            .Select(m => (Message: m, Attempt: _enqueuedQueue.GetValueOrDefault(m.Id)))
+            .OrderByDescending(c => c.Message.Id)
+            .ToArray();
+
+        _ = Task.Run(
+            function: () => RescheduleAsync(rescheduledMessages),
+            cancellationToken: CancellationToken.None);
+
+        locker?.Acquire(ids);
 
         return Task.FromResult<IReadOnlyCollection<OutboxMessage<T>>>(batch);
 
-        async Task RescheduleAsync(OutboxMessage<T> message, int attempt)
+        async Task RescheduleAsync(IEnumerable<(OutboxMessage<T> Message, int Attempt)> messages)
         {
             await Task.Delay(visibility, CancellationToken.None);
 
-            if (!_enqueuedQueue.TryGetValue(message.Id, out var current))
-                return;
+            foreach (var (message, attempt) in messages)
+            {
+                if (!_enqueuedQueue.TryGetValue(message.Id, out var current))
+                    return;
 
-            if (current != attempt)
-                return;
+                if (current != attempt)
+                    return;
 
-            await writer.WriteAsync(message, CancellationToken.None);
+                inMemoryQueue.PushLeft(message);
+            }
         }
     }
 
-    public async Task<IReadOnlyCollection<OutboxMessageId>> AddAsync<T>(
+    public Task<IReadOnlyCollection<OutboxMessageId>> AddAsync<T>(
         string identifier,
         IReadOnlyCollection<OutboxMessage<T>> messages,
         CancellationToken cancellationToken)
     {
         if (messages.Count is 0)
-            return [];
+            return Task.FromResult<IReadOnlyCollection<OutboxMessageId>>([]);
 
         var inMemoryQueue = _inMemoryQueue.GetOrAdd(
             key: identifier,
-            valueFactory: _ => Channel.CreateBounded<object>(_options.Capacity));
+            valueFactory: _ => new LimitedConcurrentDeque<object>(_options.Capacity));
+
+        var transaction = Transaction.Current();
 
         var localIds = new List<OutboxMessageId>(messages.Count);
 
@@ -94,6 +118,44 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
             }
 
             localIds.Add(local.Id);
+
+            if (transaction is null)
+            {
+                EnqueueItem(local);
+                continue;
+            }
+
+            TransactionCompletedEventHandler? handler = null;
+            handler = void (_, e) => PushItemToQueue(e, local, handler);
+
+            transaction.TransactionCompleted += handler;
+        }
+
+        return Task.FromResult<IReadOnlyCollection<OutboxMessageId>>(localIds);
+
+        async Task ScheduleAsync(OutboxMessage<T> local, TimeSpan delay)
+        {
+            await Task.Delay(delay, CancellationToken.None);
+            inMemoryQueue.PushRight(local);
+        }
+
+        void PushItemToQueue(TransactionEventArgs args, OutboxMessage<T> local, TransactionCompletedEventHandler? handler)
+        {
+            try
+            {
+                if (args.Transaction?.TransactionInformation.Status is not TransactionStatus.Committed)
+                    return;
+
+                EnqueueItem(local);
+            }
+            finally
+            {
+                transaction.TransactionCompleted -= handler;
+            }
+        }
+
+        void EnqueueItem(OutboxMessage<T> local)
+        {
             _enqueuedQueue.TryAdd(local.Id, 0);
 
             if (local.ScheduledAt is not null)
@@ -106,21 +168,11 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
                         function: () => ScheduleAsync(local, delay),
                         cancellationToken: CancellationToken.None);
 
-                    continue;
+                    return;
                 }
             }
 
-            await inMemoryQueue.Writer.WriteAsync(
-                item: local,
-                cancellationToken: cancellationToken);
-        }
-
-        return localIds;
-
-        async Task ScheduleAsync(OutboxMessage<T> local, TimeSpan delay)
-        {
-            await Task.Delay(delay, CancellationToken.None);
-            await inMemoryQueue.Writer.WriteAsync(local, CancellationToken.None);
+            inMemoryQueue.PushRight(local);
         }
     }
 
@@ -136,6 +188,9 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
     {
         foreach (var id in ids)
             _enqueuedQueue.TryRemove(id, out _);
+
+        foreach (var (_, ev) in _lockers)
+            ev.Release(ids);
 
         return Task.CompletedTask;
     }
