@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 using Yautbox.Entities;
 using Yautbox.InMemory.Infrastructure;
@@ -118,8 +119,7 @@ public class InMemoryOutboxProviderTests
 
         // Assert
         batch.Should().HaveCount(2);
-        batch.Select(message => message.Payload.Value).Should().BeEquivalentTo(
-            [firstMessage.Payload.Value, secondMessage.Payload.Value]);
+        batch.Select(message => message.Payload.Value).Should().BeEquivalentTo([firstMessage.Payload.Value, secondMessage.Payload.Value]);
     }
 
     [Fact]
@@ -472,7 +472,12 @@ public class InMemoryOutboxProviderTests
     }
 
     private static InMemoryOutboxProvider Create(InMemoryOutboxOptions? options = null, IDateTimeProvider? dateTimeProvider = null)
-        => new(options ?? new InMemoryOutboxOptions(), dateTimeProvider ?? new DateTimeProvider());
+    {
+        return new InMemoryOutboxProvider(
+            options ?? new InMemoryOutboxOptions(),
+            dateTimeProvider ?? new DateTimeProvider(),
+            NullLogger<InMemoryOutboxProvider>.Instance);
+    }
 
     private static async Task<IReadOnlyCollection<OutboxMessage<Message>>> WaitForBatchAsync(InMemoryOutboxProvider provider)
     {
@@ -541,5 +546,6 @@ public class InMemoryOutboxProviderTests
     }
 
     private sealed record Message(int Value);
+
     private sealed record OtherMessage(int Value);
 }

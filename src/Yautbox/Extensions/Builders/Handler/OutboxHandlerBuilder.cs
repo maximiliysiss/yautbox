@@ -11,11 +11,11 @@ internal class OutboxHandlerBuilder(IServiceCollection services) : IOutboxHandle
 
     public IServiceCollection Services { get; } = services;
 
-    public IOutboxHandlerBuilder ConfigureOptions<T>(Action<OptionsBuilder<T>> configureOptions) where T : class, IOutboxRunnerOptions
+    public IOutboxHandlerBuilder ConfigureOptions<T>(Action<OptionsBuilder<T>>? configureOptions = null) where T : class, IOutboxRunnerOptions
     {
         _optionsType = typeof(T);
         var optionsBuilder = Services.AddOptions<T>();
-        configureOptions.Invoke(optionsBuilder);
+        configureOptions?.Invoke(optionsBuilder);
 
         return this;
     }

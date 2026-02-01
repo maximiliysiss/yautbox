@@ -8,5 +8,5 @@ namespace Yautbox.Extensions.Builders.Handler;
 public interface IOutboxHandlerBuilder
 {
     public IServiceCollection Services { get; }
-    IOutboxHandlerBuilder ConfigureOptions<T>(Action<OptionsBuilder<T>> configureOptions) where T : class, IOutboxRunnerOptions;
+    IOutboxHandlerBuilder ConfigureOptions<T>(Action<OptionsBuilder<T>>? configureOptions = null) where T : class, IOutboxRunnerOptions;
 }

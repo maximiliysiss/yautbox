@@ -1,7 +1,9 @@
 using System.Collections.Concurrent;
 using System.Transactions;
+using Microsoft.Extensions.Logging;
 using Yautbox.Entities;
 using Yautbox.InMemory.Collections;
+using Yautbox.InMemory.Extensions;
 using Yautbox.InMemory.Infrastructure;
 using Yautbox.InMemory.Options;
 using Yautbox.Provider;
@@ -20,10 +22,13 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
     private readonly InMemoryOutboxOptions _options;
     private readonly IDateTimeProvider _dateTimeProvider;
 
-    public InMemoryOutboxProvider(InMemoryOutboxOptions options, IDateTimeProvider dateTimeProvider)
+    private readonly ILogger<InMemoryOutboxProvider> _logger;
+
+    public InMemoryOutboxProvider(InMemoryOutboxOptions options, IDateTimeProvider dateTimeProvider, ILogger<InMemoryOutboxProvider> logger)
     {
         _options = options;
         _dateTimeProvider = dateTimeProvider;
+        _logger = logger;
     }
 
     public Task<IReadOnlyCollection<OutboxMessage<T>>> GetAsync<T>(
@@ -76,6 +81,8 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
                     return;
 
                 inMemoryQueue.PushLeft(message);
+
+                _logger.ReschedulingMessage(id: message.Id, name: identifier);
             }
         }
     }
