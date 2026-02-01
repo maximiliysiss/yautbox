@@ -34,6 +34,10 @@ internal static class OutboxRunnerOptionsExtensions
         if (options.ExecutionPolicy is OutboxExecutionPolicy.Sequential && options.WorkersCount > 1)
             return new ValidationResult.FailureValidationResult("Sequential execution policy cannot be used with more than one worker");
 
+        if (options.ExecutionPolicy is OutboxExecutionPolicy.Sequential && options.PerBufferCount != options.BufferSize)
+            return new ValidationResult.FailureValidationResult(
+                "Sequential execution policy requires buffer size to be equal to per buffer count");
+
         return new ValidationResult.SuccessValidationResult();
     }
 }

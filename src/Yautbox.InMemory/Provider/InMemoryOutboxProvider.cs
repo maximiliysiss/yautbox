@@ -4,7 +4,6 @@ using Yautbox.Entities;
 using Yautbox.InMemory.Collections;
 using Yautbox.InMemory.Infrastructure;
 using Yautbox.InMemory.Options;
-using Yautbox.InMemory.Primitives;
 using Yautbox.Provider;
 using Yautbox.Runner.Options;
 using Transaction = Yautbox.InMemory.Transactions.Transaction;
@@ -17,7 +16,6 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
 
     private readonly ConcurrentDictionary<string, LimitedConcurrentDeque<object>> _inMemoryQueue = [];
     private readonly ConcurrentDictionary<OutboxMessageId, int> _enqueuedQueue = [];
-    private readonly ConcurrentDictionary<string, DynamicCountdownEvent<OutboxMessageId>> _lockers = [];
 
     private readonly InMemoryOutboxOptions _options;
     private readonly IDateTimeProvider _dateTimeProvider;
@@ -37,13 +35,6 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
     {
         if (!_inMemoryQueue.TryGetValue(identifier, out var inMemoryQueue))
             return Task.FromResult<IReadOnlyCollection<OutboxMessage<T>>>([]);
-
-        DynamicCountdownEvent<OutboxMessageId>? locker = null;
-
-        if (policy is OutboxExecutionPolicy.Sequential)
-            locker = _lockers.GetOrAdd(identifier, _ => new DynamicCountdownEvent<OutboxMessageId>());
-
-        locker?.Wait();
 
         var batch = new List<OutboxMessage<T>>(count);
         var ids = new List<OutboxMessageId>(count);
@@ -69,8 +60,6 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
         _ = Task.Run(
             function: () => RescheduleAsync(rescheduledMessages),
             cancellationToken: CancellationToken.None);
-
-        locker?.Acquire(ids);
 
         return Task.FromResult<IReadOnlyCollection<OutboxMessage<T>>>(batch);
 
@@ -189,13 +178,10 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
         foreach (var id in ids)
             _enqueuedQueue.TryRemove(id, out _);
 
-        foreach (var (_, ev) in _lockers)
-            ev.Release(ids);
-
         return Task.CompletedTask;
     }
 
-    public Task CleanAsync(DateTimeOffset olderThan, CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task CleanAsync(string identifier, DateTimeOffset olderThan, CancellationToken cancellationToken) => Task.CompletedTask;
 
     public Task RetryAsync<T>(
         string identifier,
@@ -204,11 +190,6 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
     {
         foreach (var (outboxMessageId, _, _, currentAttempt, _) in messages)
             _enqueuedQueue.TryUpdate(key: outboxMessageId, newValue: currentAttempt, comparisonValue: currentAttempt - 1);
-
-        var ids = messages.Select(m => m.Id).ToArray();
-
-        foreach (var (_, ev) in _lockers)
-            ev.Release(ids);
 
         return AddAsync(identifier, messages, cancellationToken);
     }

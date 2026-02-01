@@ -12,6 +12,7 @@ using Yautbox.Infrastructure.DateTime;
 using Yautbox.Infrastructure.Hosted;
 using Yautbox.Infrastructure.Waiter;
 using Yautbox.Provider;
+using Yautbox.Registy;
 using Yautbox.Runner.Options;
 
 namespace Yautbox.Runner;
@@ -79,9 +80,12 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
                 using var scope = _serviceProvider.CreateScope();
 
                 var provider = scope.ServiceProvider.GetRequiredService<IOutboxProvider>();
+                var registry = scope.ServiceProvider.GetRequiredService<IOutboxRegistry>();
 
                 var olderThan = _dateTimeProvider.GetNow() - options.BackupInterval.Value;
-                await provider.CleanAsync(olderThan, cancellationToken);
+                var identifier = registry.GetIdentifier<TPayload>();
+
+                await provider.CleanAsync(identifier, olderThan, cancellationToken);
 
                 await Task.Delay(options.BackupInterval.Value, cancellationToken);
             }

@@ -155,7 +155,7 @@ public class ServiceCollectionExtensionsTests
             OutboxDeletePolicy policy,
             CancellationToken cancellationToken) => throw new NotImplementedException();
 
-        public Task CleanAsync(DateTimeOffset olderThan, CancellationToken cancellationToken) =>
+        public Task CleanAsync(string identifier, DateTimeOffset olderThan, CancellationToken cancellationToken) =>
             throw new NotImplementedException();
 
         public Task RetryAsync<T>(

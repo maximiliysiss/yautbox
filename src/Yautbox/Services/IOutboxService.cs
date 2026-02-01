@@ -9,7 +9,7 @@ namespace Yautbox.Services;
 public interface IOutboxService
 {
     /// <summary>
-    /// Handle new messages and place them into outbox
+    /// Handle new messages and place them into the outbox
     /// </summary>
     Task<IEnumerable<OutboxMessageId>> HandleAsync<T>(
         IEnumerable<T> messages,
@@ -18,7 +18,7 @@ public interface IOutboxService
 
     /// <summary>
     /// Cancel outbox handling by ids
-    /// WARNING: some messages can be alredy handled or be in process. They will be ignored
+    /// WARNING: some messages can be already handled or be in process. They will be probably ignored
     /// </summary>
     Task CancelAsync(IEnumerable<OutboxMessageId> ids, CancellationToken cancellationToken);
 }

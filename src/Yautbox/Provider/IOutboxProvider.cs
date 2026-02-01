@@ -46,6 +46,7 @@ public interface IOutboxProvider
     /// Clean safe-deleted outbox messages older than the specified date
     /// </summary>
     Task CleanAsync(
+        string identifier,
         DateTimeOffset olderThan,
         CancellationToken cancellationToken);
 
