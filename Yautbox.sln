@@ -37,6 +37,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yautbox.InMemory.Integratio
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yautbox.InMemory.UnitTests", "tests\Yautbox.InMemory.UnitTests\Yautbox.InMemory.UnitTests.csproj", "{9612E77F-EE25-4D8D-8165-A777DEDFA4A2}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "benchmarks", "benchmarks", "{2F5F30DF-D0C3-41E9-ADA5-68FA38DC1100}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

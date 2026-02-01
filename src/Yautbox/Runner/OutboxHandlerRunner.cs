@@ -71,7 +71,7 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
             return;
         }
 
-        // Initial jitter to spread load
+        // Initial jitter to spread a load
         await Task.Delay(TimeSpan.Zero.Jitter(), cancellationToken);
 
         using var serviceScope = _serviceProvider.CreateScope();
@@ -94,7 +94,7 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
             {
                 try
                 {
-                    using var scope = serviceScope;
+                    using var scope = _serviceProvider.CreateScope();
 
                     var provider = scope.ServiceProvider.GetRequiredService<IOutboxProvider>();
                     var handler = scope.ServiceProvider.GetRequiredService<THandler>();
