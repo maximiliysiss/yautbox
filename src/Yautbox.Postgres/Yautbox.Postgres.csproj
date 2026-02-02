@@ -12,6 +12,8 @@
 
     <ItemGroup>
       <PackageReference Include="FluentMigrator" />
+      <PackageReference Include="FluentMigrator.Runner.Postgres" />
+      <PackageReference Include="Npgsql" />
     </ItemGroup>
 
 </Project>

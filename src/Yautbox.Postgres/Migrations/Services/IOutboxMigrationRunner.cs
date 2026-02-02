@@ -1,6 +1,6 @@
 namespace Yautbox.Postgres.Migrations.Services;
 
-public interface IOutboxMigrationRunner
+internal interface IOutboxMigrationRunner
 {
     Task MigrateUpAsync(CancellationToken cancellationToken);
 }

@@ -1,12 +1,14 @@
 <Project>
   <ItemGroup>
     <PackageVersion Include="DequeNet" Version="1.0.2" />
-    <PackageVersion Include="FluentMigrator" Version="8.0.0" />
+    <PackageVersion Include="FluentMigrator" Version="8.0.1" />
+    <PackageVersion Include="FluentMigrator.Runner.Postgres" Version="8.0.1" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.12" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.2" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.2" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.2" />
+    <PackageVersion Include="Npgsql" Version="10.0.1" />
     <PackageVersion Include="Polly" Version="8.6.5" />
     <PackageVersion Include="Scrutor" Version="7.0.0" />
     <PackageVersion Include="StronglyTypedId" Version="0.2.1" />

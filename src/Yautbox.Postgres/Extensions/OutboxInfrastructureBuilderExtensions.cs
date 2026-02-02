@@ -1,10 +1,13 @@
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Yautbox.Extensions.Builders.Outbox;
+using Yautbox.Infrastructure.Waiter;
 using Yautbox.Postgres.Environment;
 using Yautbox.Postgres.Extensions.Configurator;
-using Yautbox.Postgres.Migrations.Options;
+using Yautbox.Postgres.Infrastructure.Database;
+using Yautbox.Postgres.Infrastructure.DateTime;
 using Yautbox.Postgres.Options;
+using Yautbox.Postgres.Provider;
 using Yautbox.Postgres.Repositories;
 
 namespace Yautbox.Postgres.Extensions;
@@ -14,43 +17,43 @@ public static class OutboxInfrastructureBuilderExtensions
     public static IOutboxInfrastructureBuilder UsePostgres<TConnectionFactory>(
         this IOutboxInfrastructureBuilder builder,
         PostgresStoreOptions? options = null)
-    where TConnectionFactory : class, IOutboxConnectionFactory
+        where TConnectionFactory : class, IOutboxConnectionFactory
     {
-        var services = builder.Services;
-
-        var syncAwaiter = new InfrastructureReadinessWaiter();
-        builder
-            .SetOutboxRepository<OutboxRepository>()
-            .SetReadinessWaiter(syncAwaiter);
-
         options ??= new PostgresStoreOptions();
+
+        builder
+            .SetProvider<PostgresOutboxProvider>()
+            .SetWaiter<InfrastructureReadinessWaiter>();
+
+        var services = builder.Services;
 
         services
             .AddOptions<PostgresOutboxRepositoryOptions>()
-            .Configure<IOptions<OutboxSerializerOptions>>(
-                (opt, jsonOptions) =>
-                {
-                    foreach (var converter in jsonOptions.Value.JsonSerializerOptions.Converters)
-                        opt.JsonSerializerOptions.Converters.Add(converter);
-
-                    if (options.SchemaName is not null)
-                        opt.SchemaName = options.SchemaName;
-                })
-            .Services
-            .AddOptions<MigrationOptions>()
-            .Configure<IOptions<PostgresOutboxRepositoryOptions>>(
-                (opt, repositoryOptions) => opt.SchemaName = repositoryOptions.Value.SchemaName);
+            .Configure<IServiceProvider>(ConfigureSchemaName);
 
         services
-            .AddSingleton<IOutboxConnectionFactory, TConnectionFactory>()
-            .AddSingleton(TimeProvider.System);
+            .TryAddSingleton<IOutboxConnectionFactory, TConnectionFactory>();
 
         services
-            .AddSingleton<ISynchronizer>(syncAwaiter);
+            .TryAddSingleton<IDateTimeProvider, DateTimeProvider>();
+
+        services
+            .TryAddSingleton<ISynchronizer>(sp => (ISynchronizer)sp.GetRequiredService<IInfrastructureReadinessWaiter>());
 
         services
             .AddOutboxMigrations();
 
+        services
+            .TryAddScoped<IPostgresOutboxRepository, PostgresOutboxRepository>();
+
         return builder;
+
+        void ConfigureSchemaName(PostgresOutboxRepositoryOptions opt, IServiceProvider provider)
+        {
+            if (options.SchemaName is not null)
+                opt.SchemaName = options.SchemaName;
+
+            options.ConfigureJsonOptions?.Invoke(opt.JsonSerializerOptions, provider);
+        }
     }
 }

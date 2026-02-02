@@ -1,11 +1,16 @@
+using FluentMigrator.Runner;
+using FluentMigrator.Runner.Processors;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Npgsql;
+using Yautbox.Postgres.Infrastructure;
+using Yautbox.Postgres.Infrastructure.Database;
 using Yautbox.Postgres.Migrations.Options;
 
 namespace Yautbox.Postgres.Migrations.Services;
 
-public sealed class OutboxMigrationRunner(
+internal sealed class OutboxMigrationRunner(
     IOutboxConnectionFactory connectionFactory,
     IOptions<MigrationOptions> options,
     ILoggerFactory loggerFactory)
@@ -20,18 +25,16 @@ public sealed class OutboxMigrationRunner(
 
         await using var serviceProvider = new ServiceCollection()
             .AddFluentMigratorCore()
-            .ConfigureRunner(
-                builder => builder
-                    .AddPostgres()
-                    .ScanIn(assembly).For.All())
+            .ConfigureRunner(builder => builder
+                .AddPostgres()
+                .ScanIn(assembly).For.All())
             .AddOptions<ProcessorOptions>()
-            .Configure(
-                options =>
-                {
-                    options.ProviderSwitches = "Force Quote=false";
-                    options.Timeout = TimeSpan.FromMinutes(10);
-                    options.ConnectionString = connectionFactory.GetConnectionString();
-                })
+            .Configure(options =>
+            {
+                options.ProviderSwitches = "Force Quote=false";
+                options.Timeout = TimeSpan.FromMinutes(10);
+                options.ConnectionString = connectionFactory.GetConnectionString();
+            })
             .Services
             .AddOptions<MigrationOptions>()
             .Configure(opt => opt.SchemaName = _options.SchemaName)
@@ -47,9 +50,13 @@ public sealed class OutboxMigrationRunner(
 
         // Reload types
         await using var connection = await connectionFactory.GetConnectionAsync(cancellationToken);
-        await using var npgsqlConnection = (NpgsqlConnection)connection;
 
-        await npgsqlConnection.OpenAsync(cancellationToken);
-        await npgsqlConnection.ReloadTypesAsync();
+        await using var npgsqlConnection = connection as NpgsqlConnection;
+
+        if (npgsqlConnection is not null)
+        {
+            await npgsqlConnection.OpenAsync(cancellationToken);
+            await npgsqlConnection.ReloadTypesAsync(cancellationToken);
+        }
     }
 }

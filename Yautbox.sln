@@ -9,6 +9,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "common", "common", "{4D8684
 		.gitignore = .gitignore
 		Directory.Packages.props = Directory.Packages.props
 		README.md = README.md
+		docker-compose.yaml = docker-compose.yaml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{9E642318-8B31-4255-81FB-803949BD0C2F}"
@@ -37,7 +38,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yautbox.InMemory.Integratio
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yautbox.InMemory.UnitTests", "tests\Yautbox.InMemory.UnitTests\Yautbox.InMemory.UnitTests.csproj", "{9612E77F-EE25-4D8D-8165-A777DEDFA4A2}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "benchmarks", "benchmarks", "{2F5F30DF-D0C3-41E9-ADA5-68FA38DC1100}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yautbox.Postgres.IntegrationTests", "tests\Yautbox.Postgres.IntegrationTests\Yautbox.Postgres.IntegrationTests.csproj", "{185CAF02-7942-4240-857B-FE647BD2581E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -56,6 +57,7 @@ Global
 		{AF77B168-74F8-48A5-80E4-6AE754FE2050} = {30B5EA61-1992-47C8-B418-20D56EEB58A9}
 		{BF98938E-E565-4195-BC36-4C12D4307DA2} = {30B5EA61-1992-47C8-B418-20D56EEB58A9}
 		{9612E77F-EE25-4D8D-8165-A777DEDFA4A2} = {30B5EA61-1992-47C8-B418-20D56EEB58A9}
+		{185CAF02-7942-4240-857B-FE647BD2581E} = {30B5EA61-1992-47C8-B418-20D56EEB58A9}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{7AE9734E-1E46-4D25-82DA-DA6A8D6B7BFD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -90,5 +92,9 @@ Global
 		{9612E77F-EE25-4D8D-8165-A777DEDFA4A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9612E77F-EE25-4D8D-8165-A777DEDFA4A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9612E77F-EE25-4D8D-8165-A777DEDFA4A2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{185CAF02-7942-4240-857B-FE647BD2581E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{185CAF02-7942-4240-857B-FE647BD2581E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{185CAF02-7942-4240-857B-FE647BD2581E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{185CAF02-7942-4240-857B-FE647BD2581E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Xunit.Abstractions;
 using Xunit;
 using Yautbox.Handlers;
 using Yautbox.InMemory.IntegrationTests.Shared.Fixture;
@@ -15,7 +16,7 @@ using Yautbox.Services;
 namespace Yautbox.InMemory.IntegrationTests.Cases;
 
 [Collection(nameof(IntegrationTestCollection))]
-public class MultipleMessagesOutboxHandlerTests(IntegrationTestFixture fixture)
+public class MultipleMessagesOutboxHandlerTests(IntegrationTestFixture fixture, ITestOutputHelper output)
 {
     [Fact]
     public async Task Handler_ShouldHandleAllMessages()
@@ -32,6 +33,29 @@ public class MultipleMessagesOutboxHandlerTests(IntegrationTestFixture fixture)
         await service.HandleAsync(messages);
 
         await WaitForHandledCountAsync(values.Length, TimeSpan.FromSeconds(2));
+
+        // Assert
+        Handler.Values.Should().BeEquivalentTo(values);
+    }
+
+    [Fact]
+    public async Task Handler_ShouldHandleLargeBatch_AndLogDuration()
+    {
+        // Arrange
+        Handler.Reset();
+        using var scope = fixture.Services.CreateScope();
+
+        var service = scope.ServiceProvider.GetRequiredService<IOutboxService>();
+        var values = Enumerable.Range(1, 2000).ToArray();
+        var messages = values.Select(value => new Message(value)).ToArray();
+
+        // Act
+        var stopwatch = Stopwatch.StartNew();
+        await service.HandleAsync(messages);
+        await WaitForHandledCountAsync(values.Length, TimeSpan.FromSeconds(10));
+        stopwatch.Stop();
+
+        output.WriteLine($"Handled {values.Length} messages in {stopwatch.Elapsed}.");
 
         // Assert
         Handler.Values.Should().BeEquivalentTo(values);
