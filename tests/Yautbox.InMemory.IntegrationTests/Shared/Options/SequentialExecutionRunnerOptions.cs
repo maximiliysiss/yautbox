@@ -16,6 +16,6 @@ public sealed class SequentialExecutionRunnerOptions : IOutboxRunnerOptions
     public TimeSpan FailureDelay { get; set; } = TimeSpan.FromMilliseconds(100);
     public TimeSpan Visibility { get; set; } = TimeSpan.FromMilliseconds(200);
     public TimeSpan? BackupInterval { get; set; }
-    public OutboxExecutionPolicy ExecutionPolicy { get; set; } = OutboxExecutionPolicy.Sequential;
+    public ExecutionPolicy ExecutionPolicy { get; set; } = ExecutionPolicy.Sequential;
     public DeletePolicy CancellationPolicy { get; set; } = DeletePolicy.Safe;
 }

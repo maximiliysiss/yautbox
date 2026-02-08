@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Yautbox.Extensions.Common;
 using Yautbox.Extensions.DateTime;
 using Yautbox.Extensions.Enumerable;
 using Yautbox.Extensions.Logger;
@@ -16,6 +17,7 @@ using Yautbox.Infrastructure.Hosted;
 using Yautbox.Infrastructure.Waiter;
 using Yautbox.Provider;
 using Yautbox.Registy;
+using Yautbox.Runner.Infrastructure;
 using Yautbox.Runner.Options;
 
 namespace Yautbox.Runner;
@@ -78,6 +80,7 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
 
         var registry = serviceScope.ServiceProvider.GetRequiredService<IOutboxRegistry>();
 
+        var policy = options.ExecutionPolicy;
         var identifier = registry.GetIdentifier<TPayload>();
 
         var workers = Enumerable
@@ -99,7 +102,11 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
                     var provider = scope.ServiceProvider.GetRequiredService<IOutboxProvider>();
                     var handler = scope.ServiceProvider.GetRequiredService<THandler>();
 
-                    await HandleLoopAsync(identifier, provider, handler, options, stoppingToken);
+                    var policyFactory = scope.ServiceProvider.GetService<IPolicyFactory>();
+
+                    await using (var _ = await (policyFactory?.CreateAsync(identifier, policy, stoppingToken) ?? Disposable.EmptyTask))
+                        await HandleLoopAsync(identifier, provider, handler, options, stoppingToken);
+
                     await Task.Delay(options.PollDelay.Jitter(), stoppingToken);
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -143,7 +150,7 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
         var stoppingToken = cancellationTokenSource.Token;
 
         var loopTasks = await provider
-            .GetAsync<TPayload>(identifier, options.BufferSize, options.Visibility, options.ExecutionPolicy, stoppingToken)
+            .GetAsync<TPayload>(identifier, options.BufferSize, options.Visibility, stoppingToken)
             .ChunkAsync(options.PerBufferCount, stoppingToken)
             .Select(g => LoopAsync(g, stoppingToken))
             .ToArrayAsync(stoppingToken);

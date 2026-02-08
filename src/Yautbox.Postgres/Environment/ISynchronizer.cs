@@ -1,3 +1,6 @@
+using System.Threading;
+using System.Threading.Tasks;
+
 namespace Yautbox.Postgres.Environment;
 
 internal interface ISynchronizer

@@ -1,50 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
-    <PackageReference Include="Microsoft.Extensions.Options" />
-    <PackageReference Include="Polly" />
-    <PackageReference Include="Scrutor" />
-    <PackageReference Include="StronglyTypedId" />
-    <PackageReference Include="System.Linq.Async" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Update="Extensions\Builders\Outbox\IOutboxInfrastructureBuilder.cs">
-      <Generator>MSBuild:GenerateCodeFromAttributes</Generator>
-    </Compile>
-    <Compile Update="Extensions\Builders\Outbox\OutboxInfrastructureBuilder.cs">
-      <Generator>MSBuild:GenerateCodeFromAttributes</Generator>
-    </Compile>
-    <Compile Update="Extensions\Builders\Handler\OutboxHandlerBuilder.cs">
-      <Generator>MSBuild:GenerateCodeFromAttributes</Generator>
-    </Compile>
-    <Compile Update="Extensions\Builders\Handler\IOutboxHandlerBuilder.cs">
-      <Generator>MSBuild:GenerateCodeFromAttributes</Generator>
-    </Compile>
-    <Compile Update="Runner\Options\DefaultRunnerOptions.cs">
-      <Generator>MSBuild:GenerateCodeFromAttributes</Generator>
-    </Compile>
-    <Compile Update="Runner\Options\IOutboxRunnerOptions.cs">
-      <Generator>MSBuild:GenerateCodeFromAttributes</Generator>
-    </Compile>
-    <Compile Update="Extensions\Logger\LoggerExtensions.cs">
-      <Generator>MSBuild:GenerateCodeFromAttributes</Generator>
-    </Compile>
-    <Compile Update="Extensions\Outbox\OutboxServiceExtensions.cs">
-      <Generator>MSBuild:GenerateCodeFromAttributes</Generator>
-    </Compile>
-    <Compile Update="Extensions\Ioc\ServiceCollectionExtensions.cs">
-      <Generator>MSBuild:GenerateCodeFromAttributes</Generator>
-    </Compile>
-    <Compile Update="Infrastructure\Waiter\DefaultReadinessWaiter.cs">
-      <Generator>MSBuild:GenerateCodeFromAttributes</Generator>
-    </Compile>
-    <Compile Update="Infrastructure\Waiter\IInfrastructureReadinessWaiter.cs">
-      <Generator>MSBuild:GenerateCodeFromAttributes</Generator>
-    </Compile>
-    <Compile Update="Infrastructure\Hosted\RestartableService.cs">
-      <Generator>MSBuild:GenerateCodeFromAttributes</Generator>
-    </Compile>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Options"/>
+    <PackageReference Include="Polly"/>
+    <PackageReference Include="Scrutor"/>
+    <PackageReference Include="StronglyTypedId"/>
+    <PackageReference Include="System.Linq.Async"/>
   </ItemGroup>
 </Project>

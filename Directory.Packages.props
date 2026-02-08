@@ -1,6 +1,9 @@
 <Project>
   <ItemGroup>
+    <PackageVersion Include="AutoBogus" Version="2.13.1" />
+    <PackageVersion Include="AutoFixture.Xunit2" Version="4.18.1" />
     <PackageVersion Include="DequeNet" Version="1.0.2" />
+    <PackageVersion Include="FluentAssertions.Json" Version="8.0.0" />
     <PackageVersion Include="FluentMigrator" Version="8.0.1" />
     <PackageVersion Include="FluentMigrator.Runner.Postgres" Version="8.0.1" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.12" />

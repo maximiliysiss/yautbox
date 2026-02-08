@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Yautbox.Entities;
 using Yautbox.Postgres.Repositories;
 using Yautbox.Provider;
@@ -21,12 +26,17 @@ internal sealed class PostgresOutboxProvider(IPostgresOutboxRepository repositor
         string identifier,
         int count,
         TimeSpan visibility,
-        OutboxExecutionPolicy policy,
+        ExecutionPolicy policy,
         CancellationToken cancellationToken)
     {
-        return await repository
-            .GetAsync<T>(identifier, count, visibility, policy, cancellationToken)
+        var records = await repository
+            .GetAsync<T>(identifier, count, visibility, cancellationToken)
             .ToArrayAsync(cancellationToken);
+
+        if (records is not [] && policy is ExecutionPolicy.Sequential)
+            ;
+
+        return records;
     }
 
     public Task CancelAsync(

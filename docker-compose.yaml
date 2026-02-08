@@ -1,0 +1,5 @@
+services:
+  postgres:
+    image: postgres:13.2-alpine
+    ports:
+      - "5432:5432"

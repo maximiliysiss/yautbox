@@ -1,3 +1,4 @@
+using System;
 using FluentMigrator;
 using FluentMigrator.Expressions;
 using FluentMigrator.Infrastructure;

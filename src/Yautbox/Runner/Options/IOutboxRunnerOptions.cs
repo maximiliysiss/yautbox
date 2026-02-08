@@ -64,7 +64,7 @@ public interface IOutboxRunnerOptions
     /// <summary>
     /// Execution policy for outbox handlers. Default is parallel
     /// </summary>
-    OutboxExecutionPolicy ExecutionPolicy { get; }
+    ExecutionPolicy ExecutionPolicy { get; }
 
     /// <summary>
     /// Cancellation policy for outbox handlers. Default is safe-delete

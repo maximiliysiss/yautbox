@@ -31,10 +31,10 @@ internal static class OutboxRunnerOptionsExtensions
         if (options.BackupInterval is not null && options.BackupInterval <= TimeSpan.Zero)
             return new ValidationResult.FailureValidationResult("Backup interval cannot be zero or negative");
 
-        if (options.ExecutionPolicy is OutboxExecutionPolicy.Sequential && options.WorkersCount > 1)
+        if (options.ExecutionPolicy is ExecutionPolicy.Sequential && options.WorkersCount > 1)
             return new ValidationResult.FailureValidationResult("Sequential execution policy cannot be used with more than one worker");
 
-        if (options.ExecutionPolicy is OutboxExecutionPolicy.Sequential && options.PerBufferCount != options.BufferSize)
+        if (options.ExecutionPolicy is ExecutionPolicy.Sequential && options.PerBufferCount != options.BufferSize)
             return new ValidationResult.FailureValidationResult(
                 "Sequential execution policy requires buffer size to be equal to per buffer count");
 

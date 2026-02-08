@@ -1,9 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="AutoBogus" />
+    <PackageReference Include="AutoFixture.Xunit2" />
     <PackageReference Include="coverlet.collector"/>
     <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="FluentAssertions.Json" />
     <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="NSubstitute" />
     <PackageReference Include="xunit"/>
     <PackageReference Include="xunit.runner.visualstudio"/>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing"/>
@@ -11,6 +15,16 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Yautbox.Postgres\Yautbox.Postgres.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Cases\" />
   </ItemGroup>
 
 </Project>

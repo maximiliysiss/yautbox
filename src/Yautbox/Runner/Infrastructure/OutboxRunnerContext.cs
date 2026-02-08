@@ -4,7 +4,7 @@ using System.Linq;
 using Yautbox.Entities;
 using Yautbox.Infrastructure.DateTime;
 
-namespace Yautbox.Runner;
+namespace Yautbox.Runner.Infrastructure;
 
 internal sealed class OutboxRunnerContext<T>(IDateTimeProvider dateTimeProvider, IReadOnlyCollection<OutboxMessage<T>> outboxMessages)
 {

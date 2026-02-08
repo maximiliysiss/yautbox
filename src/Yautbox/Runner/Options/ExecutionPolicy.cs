@@ -1,6 +1,6 @@
 namespace Yautbox.Runner.Options;
 
-public enum OutboxExecutionPolicy
+public enum ExecutionPolicy
 {
     /// <summary>
     /// Non-blocking execution policy.

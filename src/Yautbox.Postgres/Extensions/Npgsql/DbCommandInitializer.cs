@@ -1,16 +1,14 @@
-using System.Diagnostics.CodeAnalysis;
-
 // ReSharper disable once CheckNamespace
+
 namespace System.Data.Common;
 
 public readonly ref struct DbCommandInitializer
 {
-    public DbCommand Command { get; }
+    private DbCommand Command { get; }
 
     public string CommandText
     {
         get => Command.CommandText;
-        [param: AllowNull]
         set => Command.CommandText = value;
     }
 

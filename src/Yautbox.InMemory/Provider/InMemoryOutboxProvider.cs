@@ -1,4 +1,9 @@
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Transactions;
 using Microsoft.Extensions.Logging;
 using Yautbox.Entities;
@@ -35,7 +40,7 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
         string identifier,
         int count,
         TimeSpan visibility,
-        OutboxExecutionPolicy policy,
+        ExecutionPolicy policy,
         CancellationToken cancellationToken)
     {
         if (!_inMemoryQueue.TryGetValue(identifier, out var inMemoryQueue))

@@ -1,5 +1,10 @@
+using System;
+using System.Data.Common;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Npgsql;
 using Yautbox.Extensions.Builders.Outbox;
 using Yautbox.Infrastructure.Waiter;
 using Yautbox.Postgres.Environment;
@@ -14,6 +19,19 @@ namespace Yautbox.Postgres.Extensions;
 
 public static class OutboxInfrastructureBuilderExtensions
 {
+    public static IOutboxInfrastructureBuilder UsePostgres(
+        this IOutboxInfrastructureBuilder builder,
+        string connectionString,
+        PostgresStoreOptions? options = null)
+    {
+        var services = builder.Services;
+
+        services
+            .TryAddSingleton<IOutboxConnectionFactory>(new DefaultConnectionFactory(connectionString));
+
+        return builder.UsePostgres<DefaultConnectionFactory>(options);
+    }
+
     public static IOutboxInfrastructureBuilder UsePostgres<TConnectionFactory>(
         this IOutboxInfrastructureBuilder builder,
         PostgresStoreOptions? options = null)
@@ -58,5 +76,13 @@ public static class OutboxInfrastructureBuilderExtensions
 
             options.ConfigureJsonOptions?.Invoke(opt.JsonSerializerOptions, provider);
         }
+    }
+
+    private sealed class DefaultConnectionFactory(string connectionString) : IOutboxConnectionFactory
+    {
+        public string GetConnectionString() => connectionString;
+
+        public Task<DbConnection> GetConnectionAsync(CancellationToken cancellationToken)
+            => Task.FromResult<DbConnection>(new NpgsqlConnection(connectionString));
     }
 }

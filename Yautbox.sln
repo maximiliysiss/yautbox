@@ -40,6 +40,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yautbox.InMemory.UnitTests"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yautbox.Postgres.IntegrationTests", "tests\Yautbox.Postgres.IntegrationTests\Yautbox.Postgres.IntegrationTests.csproj", "{185CAF02-7942-4240-857B-FE647BD2581E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yautbox.Postgres.UnitTests", "tests\Yautbox.Postgres.UnitTests\Yautbox.Postgres.UnitTests.csproj", "{179F5510-CADB-47B0-956E-B9D63912F78B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -58,6 +60,7 @@ Global
 		{BF98938E-E565-4195-BC36-4C12D4307DA2} = {30B5EA61-1992-47C8-B418-20D56EEB58A9}
 		{9612E77F-EE25-4D8D-8165-A777DEDFA4A2} = {30B5EA61-1992-47C8-B418-20D56EEB58A9}
 		{185CAF02-7942-4240-857B-FE647BD2581E} = {30B5EA61-1992-47C8-B418-20D56EEB58A9}
+		{179F5510-CADB-47B0-956E-B9D63912F78B} = {30B5EA61-1992-47C8-B418-20D56EEB58A9}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{7AE9734E-1E46-4D25-82DA-DA6A8D6B7BFD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -96,5 +99,9 @@ Global
 		{185CAF02-7942-4240-857B-FE647BD2581E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{185CAF02-7942-4240-857B-FE647BD2581E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{185CAF02-7942-4240-857B-FE647BD2581E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{179F5510-CADB-47B0-956E-B9D63912F78B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{179F5510-CADB-47B0-956E-B9D63912F78B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{179F5510-CADB-47B0-956E-B9D63912F78B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{179F5510-CADB-47B0-956E-B9D63912F78B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

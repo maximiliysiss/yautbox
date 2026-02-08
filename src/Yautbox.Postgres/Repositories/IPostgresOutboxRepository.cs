@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Yautbox.Entities;
 using Yautbox.Runner.Options;
 
@@ -9,7 +13,6 @@ internal interface IPostgresOutboxRepository
         string identifier,
         int count,
         TimeSpan locker,
-        OutboxExecutionPolicy policy,
         CancellationToken cancellationToken);
 
     IAsyncEnumerable<OutboxMessageId> AddAsync<T>(

@@ -1,3 +1,5 @@
+using System;
+
 namespace Yautbox.InMemory.Transactions;
 
 internal static class Transaction
