@@ -12,9 +12,10 @@ public sealed class DeletePolicyDeleteRunnerOptions : IOutboxRunnerOptions
     public bool IsEnabled { get; set; } = true;
     public int WorkersCount { get; set; } = 1;
     public int PerBufferCount { get; set; } = 32;
-    public OutboxDeletePolicy DeletePolicy { get; set; } = OutboxDeletePolicy.Delete;
+    public DeletePolicy DeletePolicy { get; set; } = DeletePolicy.Delete;
     public TimeSpan FailureDelay { get; set; } = TimeSpan.FromMilliseconds(100);
     public TimeSpan Visibility { get; set; } = TimeSpan.FromMilliseconds(200);
     public TimeSpan? BackupInterval { get; set; }
     public OutboxExecutionPolicy ExecutionPolicy { get; set; } = OutboxExecutionPolicy.Parallel;
+    public DeletePolicy CancellationPolicy { get; set; } = DeletePolicy.Safe;
 }

@@ -42,6 +42,7 @@ internal sealed class PostgresOutboxRepository : IPostgresOutboxRepository
         string identifier,
         int count,
         TimeSpan locker,
+        OutboxExecutionPolicy policy,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var query = @$"
@@ -144,7 +145,7 @@ RETURNING id;
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
         while (await reader.ReadAsync(cancellationToken))
-            yield return new OutboxMessageId(reader.GetInt64(0));
+            yield return new OutboxMessageId(reader.GetInt64("id"));
 
         yield break;
 
@@ -153,7 +154,7 @@ RETURNING id;
 
     public async Task DeleteAsync(
         IReadOnlyCollection<OutboxMessageId> ids,
-        OutboxDeletePolicy policy,
+        DeletePolicy policy,
         CancellationToken cancellationToken)
     {
         if (ids.Count is 0)
@@ -173,8 +174,8 @@ WHERE id = ANY(:ids) AND NOT is_deleted;
 
         var query = policy switch
         {
-            OutboxDeletePolicy.Safe => safeDeleteQuery,
-            OutboxDeletePolicy.Delete => fullDeleteQuery,
+            DeletePolicy.Safe => safeDeleteQuery,
+            DeletePolicy.Delete => fullDeleteQuery,
             _ => safeDeleteQuery,
         };
 
@@ -222,5 +223,42 @@ WHERE om.id = t.id AND NOT is_deleted;
         await connection.OpenAsync(cancellationToken);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task CleanAsync(string identifier, DateTimeOffset olderThan, CancellationToken cancellationToken)
+    {
+        var query = $@"
+WITH deleted AS (
+    SELECT id
+    FROM {_options.SchemaName}.outbox_messages_deleted
+    WHERE type = :type AND created_at <= :olderThan
+    LIMIT :limit
+    FOR UPDATE SKIP LOCKED
+)
+DELETE FROM {_options.SchemaName}.outbox_messages om
+WHERE om.id IN (SELECT id FROM deleted);
+";
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            await using var connection = await _connectionFactory.GetConnectionAsync(cancellationToken);
+
+            await using DbCommand command = new DbCommandInitializer(query, connection)
+            {
+                Parameters =
+                {
+                    { "type", identifier },
+                    { "olderThan", olderThan },
+                    { "limit", _options.CleanupBatchSize }
+                }
+            };
+
+            await connection.OpenAsync(cancellationToken);
+
+            var rowAffected = await command.ExecuteNonQueryAsync(cancellationToken);
+
+            if (rowAffected is 0)
+                break;
+        }
     }
 }

@@ -159,6 +159,7 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
             cancellationToken: stoppingToken);
 
         await provider.DeleteAsync(
+            identifier: identifier,
             ids: [.. contexts.SelectMany(c => c.Success)],
             policy: options.DeletePolicy,
             cancellationToken: stoppingToken);

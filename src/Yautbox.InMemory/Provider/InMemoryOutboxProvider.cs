@@ -173,13 +173,16 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
     }
 
     public Task CancelAsync(
+        string identifier,
         IReadOnlyCollection<OutboxMessageId> ids,
+        DeletePolicy policy,
         CancellationToken cancellationToken)
-        => DeleteAsync(ids, OutboxDeletePolicy.Delete, cancellationToken);
+        => DeleteAsync(identifier, ids, policy, cancellationToken);
 
     public Task DeleteAsync(
+        string identifier,
         IReadOnlyCollection<OutboxMessageId> ids,
-        OutboxDeletePolicy policy,
+        DeletePolicy policy,
         CancellationToken cancellationToken)
     {
         foreach (var id in ids)

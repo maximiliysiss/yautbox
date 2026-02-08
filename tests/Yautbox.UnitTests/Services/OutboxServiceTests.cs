@@ -13,6 +13,7 @@ using Yautbox.Infrastructure.DateTime;
 using Yautbox.Infrastructure.Waiter;
 using Yautbox.Provider;
 using Yautbox.Registy;
+using Yautbox.Runner.Options;
 using Yautbox.Services;
 
 namespace Yautbox.UnitTests.Services;
@@ -68,14 +69,18 @@ public class OutboxServiceTests
 
         var outboxProvider = Substitute.For<IOutboxProvider>();
         outboxProvider
-            .CancelAsync(Arg.Any<IReadOnlyCollection<OutboxMessageId>>(), Arg.Any<CancellationToken>())
+            .CancelAsync(
+                Arg.Any<string>(),
+                Arg.Any<IReadOnlyCollection<OutboxMessageId>>(),
+                Arg.Any<DeletePolicy>(),
+                Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask)
             .AndDoes(c => ids.AddRange(c.Arg<IReadOnlyCollection<OutboxMessageId>>()));
 
         var service = Create(outboxProvider);
 
         // Act
-        await service.CancelAsync(id: OutboxMessageId.Empty, CancellationToken.None);
+        await service.CancelAsync<Message>(id: OutboxMessageId.Empty, CancellationToken.None);
 
         // Assert
         ids

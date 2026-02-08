@@ -8,6 +8,7 @@ public sealed class PostgresStoreOptions
     /// <summary>
     /// Specifies the schema name used for managing the outbox database objects.
     /// If not explicitly set, defaults to the configured value in the system.
+    /// Defaults to "outbox".
     /// </summary>
     public string? SchemaName { get; set; }
 
@@ -25,5 +26,13 @@ public sealed class PostgresStoreOptions
     /// The available options include "Safe" to preserve processed messages and "Delete" to remove them.
     /// Defaults to the "Delete" option if not explicitly configured.
     /// </summary>
-    public OutboxDeletePolicy CancellationPolicy { get; set; } = OutboxDeletePolicy.Delete;
+    public DeletePolicy CancellationPolicy { get; set; } = DeletePolicy.Delete;
+
+    /// <summary>
+    /// Defines the batch size for cleaning up processed records in the outbox.
+    /// This property determines the maximum number of records that will be removed
+    /// in a single cleanup operation to manage database load and performance.
+    /// Defaults to 1000.
+    /// </summary>
+    public int? CleanupBatchSize { get; set; }
 }

@@ -9,6 +9,7 @@ internal interface IPostgresOutboxRepository
         string identifier,
         int count,
         TimeSpan locker,
+        OutboxExecutionPolicy policy,
         CancellationToken cancellationToken);
 
     IAsyncEnumerable<OutboxMessageId> AddAsync<T>(
@@ -18,10 +19,15 @@ internal interface IPostgresOutboxRepository
 
     Task DeleteAsync(
         IReadOnlyCollection<OutboxMessageId> ids,
-        OutboxDeletePolicy policy,
+        DeletePolicy policy,
         CancellationToken cancellationToken);
 
     Task UpdateAsync<T>(
         IReadOnlyCollection<OutboxMessage<T>> messages,
+        CancellationToken cancellationToken);
+
+    Task CleanAsync(
+        string identifier,
+        DateTimeOffset olderThan,
         CancellationToken cancellationToken);
 }

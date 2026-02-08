@@ -268,8 +268,9 @@ public class InMemoryOutboxProviderTests
             cancellationToken: CancellationToken.None);
 
         await provider.DeleteAsync(
+            identifier: string.Empty,
             ids: firstBatch.Select(c => c.Id).ToArray(),
-            policy: OutboxDeletePolicy.Delete,
+            policy: DeletePolicy.Delete,
             cancellationToken: CancellationToken.None);
 
         await Task.Delay(TimeSpan.FromSeconds(2));
@@ -307,7 +308,11 @@ public class InMemoryOutboxProviderTests
             messages: [outboxMessage],
             cancellationToken: CancellationToken.None);
 
-        await provider.CancelAsync(ids, CancellationToken.None);
+        await provider.CancelAsync(
+            identifier: string.Empty,
+            ids: ids,
+            policy: DeletePolicy.Safe,
+            cancellationToken: CancellationToken.None);
 
         var firstBatch = await provider.GetAsync<Message>(
             identifier: typeof(Message).GetVersionFreeFullName(),

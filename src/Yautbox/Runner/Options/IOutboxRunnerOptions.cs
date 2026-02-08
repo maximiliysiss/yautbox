@@ -43,7 +43,7 @@ public interface IOutboxRunnerOptions
     /// <summary>
     /// Outbox delete policy. Default is safe-delete
     /// </summary>
-    OutboxDeletePolicy DeletePolicy { get; }
+    DeletePolicy DeletePolicy { get; }
 
     /// <summary>
     /// Delay when outbox loop cycle failed. Default is 2 seconds + jitter
@@ -65,4 +65,9 @@ public interface IOutboxRunnerOptions
     /// Execution policy for outbox handlers. Default is parallel
     /// </summary>
     OutboxExecutionPolicy ExecutionPolicy { get; }
+
+    /// <summary>
+    /// Cancellation policy for outbox handlers. Default is safe-delete
+    /// </summary>
+    DeletePolicy CancellationPolicy { get; }
 }

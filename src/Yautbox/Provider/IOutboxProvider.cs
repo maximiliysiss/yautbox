@@ -31,15 +31,18 @@ public interface IOutboxProvider
     /// Cancel outbox handling by ids
     /// </summary>
     Task CancelAsync(
+        string identifier,
         IReadOnlyCollection<OutboxMessageId> ids,
+        DeletePolicy policy,
         CancellationToken cancellationToken);
 
     /// <summary>
     /// Delete outbox messages by ids
     /// </summary>
     Task DeleteAsync(
+        string identifier,
         IReadOnlyCollection<OutboxMessageId> ids,
-        OutboxDeletePolicy policy,
+        DeletePolicy policy,
         CancellationToken cancellationToken);
 
     /// <summary>

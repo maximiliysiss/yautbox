@@ -19,6 +19,6 @@ public static class OutboxServiceExtensions
         return outboxMessageIds.Single();
     }
 
-    public static Task CancelAsync(this IOutboxService service, OutboxMessageId id, CancellationToken cancellationToken)
-        => service.CancelAsync([id], cancellationToken);
+    public static Task CancelAsync<T>(this IOutboxService service, OutboxMessageId id, CancellationToken cancellationToken = default)
+        => service.CancelAsync<T>([id], cancellationToken);
 }

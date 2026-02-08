@@ -50,8 +50,11 @@ public static class OutboxInfrastructureBuilderExtensions
 
         void ConfigureSchemaName(PostgresOutboxRepositoryOptions opt, IServiceProvider provider)
         {
-            if (options.SchemaName is not null)
+            if (!string.IsNullOrWhiteSpace(options.SchemaName))
                 opt.SchemaName = options.SchemaName;
+
+            if (options.CleanupBatchSize.HasValue)
+                opt.CleanupBatchSize = options.CleanupBatchSize.Value;
 
             options.ConfigureJsonOptions?.Invoke(opt.JsonSerializerOptions, provider);
         }

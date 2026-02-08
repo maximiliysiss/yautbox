@@ -28,7 +28,7 @@ public class CancelledOutboxHandlerTests(IntegrationTestFixture fixture)
 
         // Act
         var id = await service.HandleAsync(message: message, scheduledAt: scheduledAt);
-        await service.CancelAsync(id, CancellationToken.None);
+        await service.CancelAsync<Message>(id, CancellationToken.None);
 
         await Task.Delay(TimeSpan.FromMilliseconds(700));
 

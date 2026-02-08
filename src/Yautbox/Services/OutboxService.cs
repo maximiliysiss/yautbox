@@ -66,14 +66,18 @@ internal sealed class OutboxService : IOutboxService
         }
     }
 
-    public async Task CancelAsync(
+    public async Task CancelAsync<T>(
         IEnumerable<OutboxMessageId> ids,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default)
     {
         await _waiter.WaitAsync(cancellationToken);
 
         _logger.CancelOutboxMessage();
 
-        await _outboxProvider.CancelAsync([.. ids], cancellationToken);
+        await _outboxProvider.CancelAsync(
+            identifier: _registry.GetIdentifier<T>(),
+            ids: [.. ids],
+            policy: _registry.GetCancellationPolicy<T>(),
+            cancellationToken: cancellationToken);
     }
 }

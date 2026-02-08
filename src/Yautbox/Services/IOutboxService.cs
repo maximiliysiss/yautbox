@@ -20,5 +20,7 @@ public interface IOutboxService
     /// Cancel outbox handling by ids
     /// WARNING: some messages can be already handled or be in process. They will be probably ignored
     /// </summary>
-    Task CancelAsync(IEnumerable<OutboxMessageId> ids, CancellationToken cancellationToken);
+    Task CancelAsync<T>(
+        IEnumerable<OutboxMessageId> ids,
+        CancellationToken cancellationToken = default);
 }

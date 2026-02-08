@@ -147,12 +147,17 @@ public class ServiceCollectionExtensionsTests
             IReadOnlyCollection<Entities.OutboxMessage<T>> messages,
             CancellationToken cancellationToken) => throw new NotImplementedException();
 
-        public Task CancelAsync(IReadOnlyCollection<OutboxMessageId> ids, CancellationToken cancellationToken) =>
+        public Task CancelAsync(
+            string identifier,
+            IReadOnlyCollection<OutboxMessageId> ids,
+            DeletePolicy policy,
+            CancellationToken cancellationToken) =>
             throw new NotImplementedException();
 
         public Task DeleteAsync(
+            string identifier,
             IReadOnlyCollection<OutboxMessageId> ids,
-            OutboxDeletePolicy policy,
+            DeletePolicy policy,
             CancellationToken cancellationToken) => throw new NotImplementedException();
 
         public Task CleanAsync(string identifier, DateTimeOffset olderThan, CancellationToken cancellationToken) =>

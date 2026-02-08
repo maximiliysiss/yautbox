@@ -1,6 +1,6 @@
 namespace Yautbox.Runner.Options;
 
-public enum OutboxDeletePolicy
+public enum DeletePolicy
 {
     /// <summary>
     /// Safe delete policy for handleded messages.
