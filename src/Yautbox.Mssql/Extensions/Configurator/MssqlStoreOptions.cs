@@ -2,9 +2,9 @@ using System;
 using System.Text.Json;
 using Yautbox.Runner.Options;
 
-namespace Yautbox.Postgres.Extensions.Configurator;
+namespace Yautbox.Mssql.Extensions.Configurator;
 
-public sealed class PostgresStoreOptions
+public sealed class MssqlStoreOptions
 {
     /// <summary>
     /// Specifies the schema name used for managing the outbox database objects.
@@ -15,7 +15,7 @@ public sealed class PostgresStoreOptions
 
     /// <summary>
     /// An optional delegate used to configure <see cref="JsonSerializerOptions"/>
-    /// for the Postgres outbox repository. This customization allows the user to
+    /// for the MSSQL outbox repository. This customization allows the user to
     /// modify serialization behavior during the lifecycle of the outbox data.
     /// The provided options and service provider can be utilized to apply
     /// application-specific configurations.

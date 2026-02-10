@@ -1,3 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <ItemGroup>
+    <ProjectReference Include="..\Yautbox\Yautbox.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DistributedLock.SqlServer" />
+    <PackageReference Include="FluentMigrator.Runner"/>
+    <PackageReference Include="Microsoft.Data.SqlClient"/>
+  </ItemGroup>
+
 </Project>
