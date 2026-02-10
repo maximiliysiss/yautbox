@@ -24,7 +24,7 @@ public sealed class InitialMigration : SqlMigration
              attempt      INT                      NOT NULL DEFAULT 0,
              scheduled_at TIMESTAMP WITH TIME ZONE NULL,
              is_deleted   BOOL                     NOT NULL,
-             locker       TIMESTAMP                NULL
+             locker       TIMESTAMP                NULL,
              PRIMARY KEY (id, is_deleted)
          ) PARTITION BY LIST (is_deleted);
 

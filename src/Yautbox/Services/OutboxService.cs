@@ -17,7 +17,7 @@ internal sealed class OutboxService : IOutboxService
 {
     private readonly IOutboxProvider _outboxProvider;
 
-    private readonly IInfrastructureReadinessWaiter _waiter;
+    private readonly IInfrastructureReadinessWaiter? _waiter;
 
     private readonly IOutboxRegistry _registry;
 
@@ -28,7 +28,7 @@ internal sealed class OutboxService : IOutboxService
     public OutboxService(
         IOutboxProvider outboxProvider,
         ILogger<OutboxService> logger,
-        IInfrastructureReadinessWaiter waiter,
+        IInfrastructureReadinessWaiter? waiter,
         IDateTimeProvider dateTimeProvider,
         IOutboxRegistry registry)
     {
@@ -44,7 +44,7 @@ internal sealed class OutboxService : IOutboxService
         DateTimeOffset? scheduledAt = null,
         CancellationToken cancellationToken = default)
     {
-        await _waiter.WaitAsync(cancellationToken);
+        await (_waiter?.WaitAsync(cancellationToken) ?? Task.CompletedTask);
 
         _logger.AddedOutboxMessage();
 
@@ -70,7 +70,7 @@ internal sealed class OutboxService : IOutboxService
         IEnumerable<OutboxMessageId> ids,
         CancellationToken cancellationToken = default)
     {
-        await _waiter.WaitAsync(cancellationToken);
+        await (_waiter?.WaitAsync(cancellationToken) ?? Task.CompletedTask);
 
         _logger.CancelOutboxMessage();
 

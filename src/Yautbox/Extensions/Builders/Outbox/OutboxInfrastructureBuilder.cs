@@ -16,15 +16,16 @@ internal sealed class OutboxInfrastructureBuilder(IServiceCollection services) :
         return this;
     }
 
-    public IOutboxInfrastructureBuilder SetWaiter<T>() where T : class, IInfrastructureReadinessWaiter
+    public IOutboxInfrastructureBuilder SetWaiter<T>(ServiceLifetime lifetime = ServiceLifetime.Singleton)
+        where T : class, IInfrastructureReadinessWaiter
     {
-        services.Decorate<IInfrastructureReadinessWaiter, T>();
+        services.TryAdd(ServiceDescriptor.Describe(typeof(IInfrastructureReadinessWaiter), typeof(T), lifetime));
         return this;
     }
 
-    public IOutboxInfrastructureBuilder SetPolicy<T>() where T : class, IPolicyFactory
+    public IOutboxInfrastructureBuilder SetPolicy<T>(ServiceLifetime lifetime = ServiceLifetime.Scoped) where T : class, IPolicyFactory
     {
-        services.TryAddScoped<IPolicyFactory, T>();
+        services.TryAdd(ServiceDescriptor.Describe(typeof(IPolicyFactory), typeof(T), lifetime));
         return this;
     }
 }

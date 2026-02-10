@@ -13,7 +13,6 @@ using Yautbox.Extensions.Ioc;
 using Yautbox.Extensions.Types;
 using Yautbox.Handlers;
 using Yautbox.Infrastructure.DateTime;
-using Yautbox.Infrastructure.Waiter;
 using Yautbox.Provider;
 using Yautbox.Registy;
 using Yautbox.Runner.Options;
@@ -33,11 +32,6 @@ public class ServiceCollectionExtensionsTests
         services.AddOutbox(builder => builder.SetProvider<TestOutboxProvider>());
 
         // Assert
-        services.Should().ContainSingle(descriptor =>
-            descriptor.ServiceType == typeof(IInfrastructureReadinessWaiter) &&
-            descriptor.ImplementationType == typeof(DefaultReadinessWaiter) &&
-            descriptor.Lifetime == ServiceLifetime.Singleton);
-
         services.Should().ContainSingle(descriptor =>
             descriptor.ServiceType == typeof(IDateTimeProvider) &&
             descriptor.ImplementationType == typeof(DateTimeProvider) &&
@@ -139,7 +133,6 @@ public class ServiceCollectionExtensionsTests
             string identifier,
             int count,
             TimeSpan visibility,
-            ExecutionPolicy policy,
             CancellationToken cancellationToken) => throw new NotImplementedException();
 
         public Task<IReadOnlyCollection<OutboxMessageId>> AddAsync<T>(

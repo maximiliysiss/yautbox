@@ -5,8 +5,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="FluentMigrator"/>
-    <PackageReference Include="FluentMigrator.Runner.Postgres"/>
+    <PackageReference Include="DistributedLock.Postgres" />
+    <PackageReference Include="FluentMigrator.Runner"/>
     <PackageReference Include="Npgsql"/>
   </ItemGroup>
 

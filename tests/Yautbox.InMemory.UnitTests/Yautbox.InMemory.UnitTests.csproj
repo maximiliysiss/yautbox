@@ -12,14 +12,4 @@
     <ProjectReference Include="..\..\src\Yautbox.InMemory\Yautbox.InMemory.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Update="Extensions\TypeExtensions.cs">
-      <Generator>MSBuild:GenerateCodeFromAttributes</Generator>
-    </Compile>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Collections\" />
-  </ItemGroup>
-
 </Project>

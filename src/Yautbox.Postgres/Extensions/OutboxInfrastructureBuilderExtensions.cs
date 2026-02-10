@@ -12,6 +12,7 @@ using Yautbox.Postgres.Extensions.Configurator;
 using Yautbox.Postgres.Infrastructure.Database;
 using Yautbox.Postgres.Infrastructure.DateTime;
 using Yautbox.Postgres.Options;
+using Yautbox.Postgres.Policy;
 using Yautbox.Postgres.Provider;
 using Yautbox.Postgres.Repositories;
 
@@ -41,7 +42,8 @@ public static class OutboxInfrastructureBuilderExtensions
 
         builder
             .SetProvider<PostgresOutboxProvider>()
-            .SetWaiter<InfrastructureReadinessWaiter>();
+            .SetWaiter<InfrastructureReadinessWaiter>()
+            .SetPolicy<PostgresPolicyFactory>();
 
         var services = builder.Services;
 

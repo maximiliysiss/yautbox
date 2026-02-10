@@ -20,7 +20,7 @@ namespace Yautbox.Runner;
 internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableService where THandler : IOutboxHandler<TPayload>
 {
     private readonly IServiceProvider _serviceProvider;
-    private readonly IInfrastructureReadinessWaiter _readinessWaiter;
+    private readonly IInfrastructureReadinessWaiter? _readinessWaiter;
     private readonly IDateTimeProvider _dateTimeProvider;
 
     private readonly ILogger<OutboxCleanerRunner<THandler, TPayload>> _logger;
@@ -31,7 +31,7 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
         ILogger<OutboxCleanerRunner<THandler, TPayload>> logger,
         IOptionsMonitor<IOutboxRunnerOptions> options,
         IServiceProvider serviceProvider,
-        IInfrastructureReadinessWaiter readinessWaiter,
+        IInfrastructureReadinessWaiter? readinessWaiter,
         IDateTimeProvider dateTimeProvider) : base(logger)
     {
         _logger = logger;
@@ -46,7 +46,7 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
         using var optionsRegistration = _options.OnChange(_ => reloadTokenSource.Cancel());
         var cancellationToken = reloadTokenSource.Token;
 
-        await _readinessWaiter.WaitAsync(cancellationToken);
+        await (_readinessWaiter?.WaitAsync(cancellationToken) ?? Task.CompletedTask);
 
         var options = _options.CurrentValue;
 

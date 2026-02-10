@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoFixture.Xunit2;
 using FluentAssertions;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -88,52 +87,41 @@ public class OutboxRepositoryTests : IAsyncLifetime
             .BeOfType<OutboxDbHelper.TableRow>().Which.Payload.Should().BeJsonEquivalentTo(expectedPayload);
     }
 
-    [Theory, AutoData]
-    public async Task AddAsync_ShouldAddNewRecord_WhenEventHasPersonalData(PersonalTestEvent @event)
+    [Fact]
+    public async Task DeleteAsync_ShouldUpdateExistsRecord_WhenPolicyIsSafe()
     {
         // Arrange
+        var tableRow = OutboxDbHelper.TableRow.GetDefault(Identifier);
+
+        var id = await _outboxDbHelper.AddAsync(tableRow);
+
         var repository = Create();
 
-        var outboxMessage = new OutboxMessage<PersonalTestEvent>(
-            Id: OutboxMessageId.Empty,
-            Payload: @event,
-            Attempt: 0,
-            ScheduledAt: null,
-            CreatedAt: DateTimeOffset.UtcNow);
-
         // Act
-        var outboxMessageIds = await repository
-            .AddAsync(identifier: Identifier, messages: [outboxMessage], cancellationToken: CancellationToken.None)
-            .ToArrayAsync();
-
-        _outboxDbHelper.Track(outboxMessageIds);
+        await repository.DeleteAsync(
+            ids: [new OutboxMessageId(id)],
+            policy: DeletePolicy.Safe,
+            cancellationToken: CancellationToken.None);
 
         // Assert
-        outboxMessageIds.Should().ContainSingle();
-
-        var outboxMessageId = outboxMessageIds.First();
+        var tableRows = await _outboxDbHelper
+            .GetAsync<TestEvent>(Identifier, id)
+            .ToArrayAsync();
 
         var expectedMessage = new
         {
-            Id = outboxMessageId.Value,
-            Type = Identifier,
-            IsDeleted = false,
+            Id = id,
+            Type = tableRow.Type,
+            IsDeleted = true,
         };
-
-        var expectedPayload = JsonSerializer.Serialize(@event);
-
-        var tableRows = await _outboxDbHelper
-            .GetAsync<PersonalTestEvent>(Identifier, outboxMessageId.Value)
-            .ToArrayAsync();
 
         tableRows
             .Should().ContainSingle()
-            .Which.Should().BeEquivalentTo(expectedMessage).And
-            .BeOfType<OutboxDbHelper.TableRow>().Which.Payload.Should().NotBeJsonEquivalentTo(expectedPayload);
+            .Which.Should().BeEquivalentTo(expectedMessage);
     }
 
     [Fact]
-    public async Task DeleteAsync_ShouldDeleteExistsRecord()
+    public async Task DeleteAsync_ShouldDeleteExistsRecord_WhenPolicyIsDelete()
     {
         // Arrange
         var tableRow = OutboxDbHelper.TableRow.GetDefault(Identifier);
@@ -153,16 +141,7 @@ public class OutboxRepositoryTests : IAsyncLifetime
             .GetAsync<TestEvent>(Identifier, id)
             .ToArrayAsync();
 
-        var expectedMessage = new
-        {
-            Id = id,
-            Type = tableRow.Type,
-            IsDeleted = true,
-        };
-
-        tableRows
-            .Should().ContainSingle()
-            .Which.Should().BeEquivalentTo(expectedMessage);
+        tableRows.Should().BeEmpty();
     }
 
     [Fact]
@@ -349,48 +328,6 @@ public class OutboxRepositoryTests : IAsyncLifetime
     }
 
     [Theory, AutoData]
-    public async Task GetAsync_ShouldReturnRecordAndDecode(PersonalTestEvent @event)
-    {
-        // Arrange
-        var repository = Create();
-
-        var outboxMessage = new OutboxMessage<PersonalTestEvent>(
-            Id: OutboxMessageId.Empty,
-            Payload: @event,
-            Attempt: 0,
-            ScheduledAt: null,
-            CreatedAt: DateTimeOffset.UtcNow);
-
-        // Act
-        var outboxMessageIds = await repository
-            .AddAsync(Identifier, [outboxMessage], CancellationToken.None)
-            .ToArrayAsync();
-
-        _outboxDbHelper.Track(outboxMessageIds);
-
-        var messages = await repository
-            .GetAsync<PersonalTestEvent>(
-                identifier: Identifier,
-                count: 1,
-                locker: TimeSpan.FromMinutes(1),
-                cancellationToken: CancellationToken.None)
-            .ToArrayAsync();
-
-        // Assert
-        var id = outboxMessageIds.Should().ContainSingle().Which;
-
-        var expected = new
-        {
-            Id = id,
-            Payload = @event
-        };
-
-        messages
-            .Should().ContainSingle()
-            .Which.Should().BeEquivalentTo(expected);
-    }
-
-    [Theory, AutoData]
     public async Task GetAsync_ShouldReturnEmpty_WhenRecordIsInFuture(TestEvent @event)
     {
         // Arrange
@@ -437,6 +374,4 @@ public class OutboxRepositoryTests : IAsyncLifetime
     public async Task DisposeAsync() => await _outboxDbHelper.DisposeAsync();
 
     public sealed record TestEvent(int Id, string Name);
-
-    public sealed record PersonalTestEvent(int Id, [property: PersonalData] string Name);
 }

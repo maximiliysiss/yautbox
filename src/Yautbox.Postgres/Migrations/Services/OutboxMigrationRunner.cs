@@ -7,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Npgsql;
-using Yautbox.Postgres.Infrastructure;
 using Yautbox.Postgres.Infrastructure.Database;
 using Yautbox.Postgres.Migrations.Options;
 

@@ -12,6 +12,7 @@ using NpgsqlTypes;
 using Yautbox.Entities;
 using Yautbox.Postgres.Infrastructure.Database;
 using Yautbox.Postgres.IntegrationTests.DbHelper.Shared;
+using Yautbox.Postgres.IntegrationTests.Shared.Extensions;
 using Yautbox.Postgres.Options;
 
 namespace Yautbox.Postgres.IntegrationTests.DbHelper;
@@ -30,8 +31,10 @@ internal sealed class OutboxDbHelper : IDbHelper, ITracker<OutboxMessageId>
         _options = options.Value.SchemaName;
     }
 
-    public async IAsyncEnumerable<TableRow> GetAsync<T>(string identifier, params long[] ids)
+    public async IAsyncEnumerable<TableRow> GetAsync<T>(string? identifier = null, params long[] ids)
     {
+        identifier ??= typeof(T).GetVersionFreeFullName();
+
         var query = @$"
 SELECT id, type, payload, created_at AS createdAt, attempt, scheduled_at AS scheduledAt, is_deleted AS isDeleted
 FROM {_options}.outbox_messages

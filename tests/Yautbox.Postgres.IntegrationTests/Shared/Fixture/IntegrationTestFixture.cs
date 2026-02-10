@@ -13,6 +13,10 @@ using Npgsql;
 using Yautbox.Extensions.Ioc;
 using Yautbox.Postgres.Extensions;
 using Yautbox.Postgres.Infrastructure.Database;
+using Yautbox.Postgres.IntegrationTests.Cases;
+using Yautbox.Postgres.IntegrationTests.DbHelper;
+using Yautbox.Postgres.IntegrationTests.DbHelper.Repositories;
+using Yautbox.Postgres.Repositories;
 
 namespace Yautbox.Postgres.IntegrationTests.Shared.Fixture;
 
@@ -32,7 +36,27 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<IntegrationTe
         public void ConfigureServices(IServiceCollection services)
         {
             services
+                .AddSingleton<OutboxDbHelper>();
+
+            services
                 .AddOutbox(b => b.UsePostgres<OutboxConnectionFactory>());
+
+            services
+                .Decorate<IPostgresOutboxRepository, TrackingOutboxRepository>();
+
+            services
+                .AddOutboxHandler<RetryOutboxTests.RetryOutboxEvent, RetryOutboxTests.OutboxHandleTestsHandler>();
+
+            services
+                .AddOutboxHandler<ParallelWorkersTests.ParallelWorkerEvent, ParallelWorkersTests.OutboxHandleTestsHandler>()
+                .ConfigureOptions<ParallelWorkersTests.OutboxHandleTestsHandlerOptions>();
+
+            services
+                .AddOutboxHandler<OutboxHandleTests.OutboxHandleTestsEvent, OutboxHandleTests.OutboxHandleTestsHandler>();
+
+            services
+                .AddOutboxHandler<DisabledWorkerTests.TestMessage, DisabledWorkerTests.TestMessageHandler>()
+                .ConfigureOptions<DisabledWorkerTests.TestMessageHandlerOptions>();
         }
 
         public void Configure(IApplicationBuilder app)

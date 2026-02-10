@@ -6,7 +6,6 @@ using Yautbox.Extensions.Builders.Handler;
 using Yautbox.Extensions.Builders.Outbox;
 using Yautbox.Handlers;
 using Yautbox.Infrastructure.DateTime;
-using Yautbox.Infrastructure.Waiter;
 using Yautbox.Registy;
 using Yautbox.Runner;
 using Yautbox.Runner.Options;
@@ -20,9 +19,6 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         Action<IOutboxInfrastructureBuilder> configureInfrastructure)
     {
-        services
-            .TryAddSingleton<IInfrastructureReadinessWaiter, DefaultReadinessWaiter>();
-
         services
             .TryAddSingleton<IDateTimeProvider, DateTimeProvider>();
 

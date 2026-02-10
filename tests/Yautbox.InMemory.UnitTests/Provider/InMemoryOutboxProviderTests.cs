@@ -29,7 +29,6 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
-            policy: ExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         // Assert
@@ -53,7 +52,6 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(OtherMessage).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
-            policy: ExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         // Assert
@@ -77,7 +75,6 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
-            policy: ExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         // Assert
@@ -114,7 +111,6 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
-            policy: ExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         // Assert
@@ -143,14 +139,12 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
-            policy: ExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         var secondBatch = await provider.GetAsync<Message>(
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
-            policy: ExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         // Assert
@@ -184,7 +178,6 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
-            policy: ExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         await Task.Delay(TimeSpan.FromSeconds(2));
@@ -193,7 +186,6 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
-            policy: ExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         // Assert
@@ -221,7 +213,6 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
-            policy: ExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         await Task.Delay(TimeSpan.FromSeconds(2));
@@ -230,7 +221,6 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
-            policy: ExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         // Assert
@@ -264,7 +254,6 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
-            policy: ExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         await provider.DeleteAsync(
@@ -279,7 +268,6 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
-            policy: ExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         // Assert
@@ -318,7 +306,6 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
-            policy: ExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         // Assert
@@ -346,7 +333,6 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
-            policy: ExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         var getMessage = firstBatch.First();
@@ -363,7 +349,6 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
-            policy: ExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         // Assert
@@ -416,7 +401,6 @@ public class InMemoryOutboxProviderTests
                 identifier: typeof(Message).GetVersionFreeFullName(),
                 count: 10,
                 visibility: TimeSpan.FromSeconds(1),
-                policy: ExecutionPolicy.Parallel,
                 cancellationToken: CancellationToken.None);
 
             batchBeforeCommit.Should().BeEmpty();
@@ -468,7 +452,6 @@ public class InMemoryOutboxProviderTests
             identifier: typeof(Message).GetVersionFreeFullName(),
             count: 10,
             visibility: TimeSpan.FromSeconds(1),
-            policy: ExecutionPolicy.Parallel,
             cancellationToken: CancellationToken.None);
 
         // Assert
@@ -495,7 +478,6 @@ public class InMemoryOutboxProviderTests
                 identifier: typeof(Message).GetVersionFreeFullName(),
                 count: 10,
                 visibility: TimeSpan.FromSeconds(1),
-                policy: ExecutionPolicy.Parallel,
                 cancellationToken: CancellationToken.None);
 
             if (batch.Count > 0)
@@ -518,7 +500,6 @@ public class InMemoryOutboxProviderTests
                 identifier: typeof(Message).GetVersionFreeFullName(),
                 count: 10,
                 visibility: TimeSpan.FromSeconds(1),
-                policy: ExecutionPolicy.Parallel,
                 cancellationToken: CancellationToken.None);
 
             batch.Should().BeEmpty();

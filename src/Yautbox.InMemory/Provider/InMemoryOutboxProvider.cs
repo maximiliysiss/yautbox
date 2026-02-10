@@ -40,14 +40,12 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
         string identifier,
         int count,
         TimeSpan visibility,
-        ExecutionPolicy policy,
         CancellationToken cancellationToken)
     {
         if (!_inMemoryQueue.TryGetValue(identifier, out var inMemoryQueue))
             return Task.FromResult<IReadOnlyCollection<OutboxMessage<T>>>([]);
 
         var batch = new List<OutboxMessage<T>>(count);
-        var ids = new List<OutboxMessageId>(count);
 
         while (count > 0 && inMemoryQueue.TryPopLeft(out var item))
         {
@@ -57,7 +55,6 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
                 continue;
 
             batch.Add(message);
-            ids.Add(message.Id);
 
             count--;
         }
