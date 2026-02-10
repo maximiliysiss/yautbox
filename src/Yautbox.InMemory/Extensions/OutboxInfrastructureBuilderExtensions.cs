@@ -3,6 +3,7 @@ using Yautbox.Extensions.Builders.Outbox;
 using Yautbox.InMemory.Infrastructure;
 using Yautbox.InMemory.Options;
 using Yautbox.InMemory.Provider;
+using Yautbox.InMemory.Waiter;
 
 namespace Yautbox.InMemory.Extensions;
 
@@ -16,6 +17,7 @@ public static class OutboxInfrastructureBuilderExtensions
             .AddSingleton<IDateTimeProvider, DateTimeProvider>();
 
         builder
-            .SetProvider<InMemoryOutboxProvider>(ServiceLifetime.Singleton);
+            .SetProvider<InMemoryOutboxProvider>(ServiceLifetime.Singleton)
+            .SetWaiter<InMemoryInfrastructureWaiter>();
     }
 }
