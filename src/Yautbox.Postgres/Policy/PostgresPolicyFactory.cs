@@ -22,7 +22,7 @@ internal sealed class PostgresPolicyFactory(IOutboxConnectionFactory connectionF
         var @lock = _locks.GetOrAdd(
             key: identifier,
             valueFactory: _ => new PostgresDistributedLock(
-                key: new PostgresAdvisoryLockKey(identifier),
+                key: new PostgresAdvisoryLockKey(identifier, allowHashing: true),
                 connectionString: connectionFactory.GetConnectionString()));
 
         return await @lock.AcquireAsync(cancellationToken: cancellationToken);

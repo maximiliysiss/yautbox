@@ -9,10 +9,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Yautbox.Extensions.Outbox;
 using Yautbox.Handlers;
-using Yautbox.InMemory.IntegrationTests.Shared.Fixture;
+using Yautbox.Postgres.IntegrationTests.Shared.Fixture;
 using Yautbox.Services;
 
-namespace Yautbox.InMemory.IntegrationTests.Cases;
+namespace Yautbox.Postgres.IntegrationTests.Cases;
 
 [Collection(nameof(IntegrationTestCollection))]
 public class HandleTimeoutOutboxHandlerTests(IntegrationTestFixture fixture)

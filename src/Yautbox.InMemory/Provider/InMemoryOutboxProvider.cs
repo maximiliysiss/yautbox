@@ -42,6 +42,8 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
         TimeSpan visibility,
         CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (!_inMemoryQueue.TryGetValue(identifier, out var inMemoryQueue))
             return Task.FromResult<IReadOnlyCollection<OutboxMessage<T>>>([]);
 
@@ -49,6 +51,8 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
 
         while (count > 0 && inMemoryQueue.TryPopLeft(out var item))
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var message = (OutboxMessage<T>)item;
 
             if (!_enqueuedQueue.ContainsKey(message.Id))
@@ -94,6 +98,8 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
         IReadOnlyCollection<OutboxMessage<T>> messages,
         CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (messages.Count is 0)
             return Task.FromResult<IReadOnlyCollection<OutboxMessageId>>([]);
 
@@ -107,6 +113,8 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
 
         foreach (var message in messages)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var local = message;
 
             if (local.Id == OutboxMessageId.Empty)
@@ -187,19 +195,27 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
         DeletePolicy policy,
         CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         foreach (var id in ids)
             _enqueuedQueue.TryRemove(id, out _);
 
         return Task.CompletedTask;
     }
 
-    public Task CleanAsync(string identifier, DateTimeOffset olderThan, CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task CleanAsync(string identifier, DateTimeOffset olderThan, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.CompletedTask;
+    }
 
     public Task RetryAsync<T>(
         string identifier,
         IReadOnlyCollection<OutboxMessage<T>> messages,
         CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         foreach (var (outboxMessageId, _, _, currentAttempt, _) in messages)
             _enqueuedQueue.TryUpdate(key: outboxMessageId, newValue: currentAttempt, comparisonValue: currentAttempt - 1);
 

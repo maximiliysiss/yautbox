@@ -16,6 +16,7 @@ using Yautbox.Postgres.Infrastructure.Database;
 using Yautbox.Postgres.IntegrationTests.Cases;
 using Yautbox.Postgres.IntegrationTests.DbHelper;
 using Yautbox.Postgres.IntegrationTests.DbHelper.Repositories;
+using Yautbox.Postgres.IntegrationTests.Shared.Options;
 using Yautbox.Postgres.Repositories;
 
 namespace Yautbox.Postgres.IntegrationTests.Shared.Fixture;
@@ -57,6 +58,66 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<IntegrationTe
             services
                 .AddOutboxHandler<DisabledWorkerTests.TestMessage, DisabledWorkerTests.TestMessageHandler>()
                 .ConfigureOptions<DisabledWorkerTests.TestMessageHandlerOptions>();
+
+            services
+                .AddOutboxHandler<SimpleOutboxHandlerTests.Message, SimpleOutboxHandlerTests.Handler>()
+                .ConfigureOptions<TestRunnerOptions>();
+
+            services
+                .AddOutboxHandler<CustomIdentifierOutboxHandlerTests.Message, CustomIdentifierOutboxHandlerTests.Handler>()
+                .ConfigureOptions<CustomIdentifierRunnerOptions>();
+
+            services
+                .AddOutboxHandler<DisabledOutboxHandlerTests.Message, DisabledOutboxHandlerTests.Handler>()
+                .ConfigureOptions<DisabledRunnerOptions>();
+
+            services
+                .AddOutboxHandler<CancelledOutboxHandlerTests.Message, CancelledOutboxHandlerTests.Handler>()
+                .ConfigureOptions<TestRunnerOptions>();
+
+            services
+                .AddOutboxHandler<ScheduledOutboxHandlerTests.Message, ScheduledOutboxHandlerTests.Handler>()
+                .ConfigureOptions<TestRunnerOptions>();
+
+            services
+                .AddOutboxHandler<RetryOutboxHandlerTests.Message, RetryOutboxHandlerTests.Handler>()
+                .ConfigureOptions<TestRunnerOptions>();
+
+            services
+                .AddOutboxHandler<ExplicitRetryOutboxHandlerTests.Message, ExplicitRetryOutboxHandlerTests.Handler>()
+                .ConfigureOptions<TestRunnerOptions>();
+
+            services
+                .AddOutboxHandler<TransactionScopeOutboxHandlerTests.Message, TransactionScopeOutboxHandlerTests.Handler>()
+                .ConfigureOptions<TestRunnerOptions>();
+
+            services
+                .AddOutboxHandler<VisibilityTimeoutOutboxHandlerTests.Message, VisibilityTimeoutOutboxHandlerTests.Handler>()
+                .ConfigureOptions<VisibilityTimeoutRunnerOptions>();
+
+            services
+                .AddOutboxHandler<HandleTimeoutOutboxHandlerTests.Message, HandleTimeoutOutboxHandlerTests.Handler>()
+                .ConfigureOptions<HandleTimeoutRunnerOptions>();
+
+            services
+                .AddOutboxHandler<WorkersPerBufferOutboxHandlerTests.Message, WorkersPerBufferOutboxHandlerTests.Handler>()
+                .ConfigureOptions<WorkersRunnerOptions>();
+
+            services
+                .AddOutboxHandler<DeletePolicyDeleteOutboxHandlerTests.Message, DeletePolicyDeleteOutboxHandlerTests.Handler>()
+                .ConfigureOptions<DeletePolicyDeleteRunnerOptions>();
+
+            services
+                .AddOutboxHandler<BackupIntervalOutboxHandlerTests.Message, BackupIntervalOutboxHandlerTests.Handler>()
+                .ConfigureOptions<BackupIntervalRunnerOptions>();
+
+            services
+                .AddOutboxHandler<SequentialExecutionOutboxHandlerTests.Message, SequentialExecutionOutboxHandlerTests.Handler>()
+                .ConfigureOptions<SequentialExecutionRunnerOptions>();
+
+            services
+                .AddOutboxHandler<MultipleMessagesOutboxHandlerTests.Message, MultipleMessagesOutboxHandlerTests.Handler>()
+                .ConfigureOptions<TestRunnerOptions>();
         }
 
         public void Configure(IApplicationBuilder app)

@@ -353,6 +353,84 @@ public class OutboxRepositoryTests : IAsyncLifetime
         messages.Should().BeEmpty();
     }
 
+    [Theory, AutoData]
+    public async Task UpdateAsync_ShouldUpdateRecord(TestEvent @event)
+    {
+        var tableRow = OutboxDbHelper.TableRow
+            .GetFaker(Identifier, JsonSerializer.Serialize(@event))
+            .RuleFor(c => c.ScheduledAt, (DateTimeOffset?)null)
+            .Generate();
+
+        _ = await _outboxDbHelper.AddAsync(tableRow);
+
+        var repository = Create();
+
+        var outboxMessage = new OutboxMessage<TestEvent>(
+            Id: new OutboxMessageId(tableRow.Id),
+            Payload: @event,
+            CreatedAt: tableRow.CreatedAt,
+            Attempt: 42,
+            ScheduledAt: DateTimeOffset.UtcNow);
+
+        // Act
+        await repository.UpdateAsync([outboxMessage], CancellationToken.None);
+
+        // Assert
+        var expected = new
+        {
+            Locker = (DateTimeOffset?)null,
+            Attempt = outboxMessage.Attempt,
+            ScheduledAt = outboxMessage.ScheduledAt,
+        };
+
+        var updatedRows = await _outboxDbHelper
+            .GetAsync<TestEvent>(Identifier, ids: [tableRow.Id])
+            .ToArrayAsync();
+
+        updatedRows
+            .Should().ContainSingle()
+            .Which.Should().BeEquivalentTo(expected);
+    }
+
+    [Theory, AutoData]
+    public async Task CleanData_ShouldCleanData(TestEvent @event)
+    {
+        // Arrange
+        var faker = OutboxDbHelper.TableRow
+            .GetFaker(Identifier, JsonSerializer.Serialize(@event))
+            .RuleFor(c => c.ScheduledAt, (DateTimeOffset?)null)
+            .RuleFor(c => c.IsDeleted, true);
+
+        var now = DateTimeOffset.UtcNow;
+
+        var oldRecord = faker
+            .RuleFor(c => c.CreatedAt, now.AddDays(-1))
+            .Generate(10);
+
+        var newRecord = faker
+            .RuleFor(c => c.CreatedAt, now.AddMinutes(-1))
+            .Generate();
+
+        foreach (var tableRow in oldRecord)
+            await _outboxDbHelper.AddAsync(tableRow);
+
+        _ = await _outboxDbHelper.AddAsync(newRecord);
+
+        var repository = Create();
+
+        // Act
+        await repository.CleanAsync(Identifier, now.AddHours(-1), CancellationToken.None);
+
+        // Assert
+        var tableRows = await _outboxDbHelper
+            .GetAsync<TestEvent>(Identifier)
+            .ToArrayAsync();
+
+        tableRows
+            .Should().ContainSingle()
+            .Which.Id.Should().Be(newRecord.Id);
+    }
+
     private IPostgresOutboxRepository Create()
     {
         var optionsSnapshot = Substitute.For<IOptionsSnapshot<PostgresOutboxRepositoryOptions>>();
