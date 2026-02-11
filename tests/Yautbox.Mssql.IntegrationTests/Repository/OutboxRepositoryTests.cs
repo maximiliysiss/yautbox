@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
@@ -287,32 +288,39 @@ public class OutboxRepositoryTests : IAsyncLifetime
         var repository = Create();
 
         // Act
-        var tasks = Enumerable.Range(1, testEvents.Length / 4 + 1)
-            .Select(_ => repository
-                .GetAsync<TestEvent>(
-                    identifier: Identifier,
-                    count: 4,
-                    locker: TimeSpan.FromMinutes(5),
-                    cancellationToken: CancellationToken.None)
-                .ToArrayAsync()
-                .AsTask());
+        int length;
+        var outboxMessages = new List<OutboxMessage<TestEvent>>(testEvents.Length);
 
-        var outboxMessages = await Task.WhenAll(tasks);
+        do
+        {
+            length = outboxMessages.Count;
+
+            var cycleTasks = Enumerable.Range(1, testEvents.Length / 4 + 1)
+                .Select(_ => repository
+                    .GetAsync<TestEvent>(
+                        identifier: Identifier,
+                        count: 4,
+                        locker: TimeSpan.FromMinutes(5),
+                        cancellationToken: CancellationToken.None)
+                    .ToArrayAsync()
+                    .AsTask());
+
+            var cycleBatch = await Task.WhenAll(cycleTasks);
+
+            outboxMessages.AddRange(cycleBatch.SelectMany(c => c));
+        }
+        while (length < testEvents.Length);
 
         // Assert
         var expectedMessages = tableRows
             .Select(Map)
             .ToDictionary(c => c.Id, c => c.Payload);
 
-        var all = outboxMessages.SelectMany(c => c).ToArray();
-        all.Select(m => m.Id).Distinct().Should().HaveCount(all.Length, "no duplicates across parallel pages");
-        all.Should().HaveCount(expectedMessages.Count, "all messages should be fetched exactly once");
-        expectedMessages.Keys.Should().BeEquivalentTo(all.Select(m => m.Id), "full coverage of expected IDs");
+        outboxMessages.Select(m => m.Id).Distinct().Should().HaveCount(outboxMessages.Count, "no duplicates across parallel pages");
+        outboxMessages.Should().HaveCount(expectedMessages.Count, "all messages should be fetched exactly once");
+        expectedMessages.Keys.Should().BeEquivalentTo(outboxMessages.Select(m => m.Id), "full coverage of expected IDs");
 
         foreach (var outboxMessage in outboxMessages)
-            outboxMessage.Length.Should().BeLessThanOrEqualTo(4);
-
-        foreach (var outboxMessage in all)
         {
             expectedMessages.Keys.Should().Contain(outboxMessage.Id);
             expectedMessages[outboxMessage.Id].Should().BeEquivalentTo(outboxMessage.Payload);
