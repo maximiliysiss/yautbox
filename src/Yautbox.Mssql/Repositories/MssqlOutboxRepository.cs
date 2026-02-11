@@ -106,7 +106,7 @@ OUTPUT inserted.id, inserted.payload, inserted.attempt,
                 Id: new OutboxMessageId(reader.GetInt64("id")),
                 Payload: payload,
                 Attempt: reader.GetInt32("attempt"),
-                ScheduledAt: reader.GetFieldValue<DateTimeOffset?>("scheduledAt"),
+                ScheduledAt: reader.GetNullableFieldValue<DateTimeOffset?>("scheduledAt"),
                 CreatedAt: reader.GetFieldValue<DateTimeOffset>("createdAt"));
         }
     }

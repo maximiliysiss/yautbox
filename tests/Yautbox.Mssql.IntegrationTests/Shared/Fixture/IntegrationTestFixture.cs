@@ -18,6 +18,7 @@ using Yautbox.Mssql.IntegrationTests.DbHelper.Repositories;
 using Yautbox.Mssql.IntegrationTests.Cases;
 using Yautbox.Mssql.IntegrationTests.Shared.Options;
 using Yautbox.Mssql.Repositories;
+using Yautbox.Postgres.IntegrationTests.Shared.Options;
 
 namespace Yautbox.Mssql.IntegrationTests.Shared.Fixture;
 
@@ -118,6 +119,10 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<IntegrationTe
             services
                 .AddOutboxHandler<MultipleMessagesOutboxHandlerTests.Message, MultipleMessagesOutboxHandlerTests.Handler>()
                 .ConfigureOptions<TestRunnerOptions>();
+
+            services
+                .AddOutboxHandler<CleaningOutboxHandlerTests.Message, CleaningOutboxHandlerTests.Handler>()
+                .ConfigureOptions<CleaningRunnerOptions>();
         }
 
         public void Configure(IApplicationBuilder app)

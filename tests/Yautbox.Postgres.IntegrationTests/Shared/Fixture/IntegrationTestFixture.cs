@@ -118,6 +118,10 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<IntegrationTe
             services
                 .AddOutboxHandler<MultipleMessagesOutboxHandlerTests.Message, MultipleMessagesOutboxHandlerTests.Handler>()
                 .ConfigureOptions<TestRunnerOptions>();
+
+            services
+                .AddOutboxHandler<CleaningOutboxHandlerTests.Message, CleaningOutboxHandlerTests.Handler>()
+                .ConfigureOptions<CleaningRunnerOptions>();
         }
 
         public void Configure(IApplicationBuilder app)

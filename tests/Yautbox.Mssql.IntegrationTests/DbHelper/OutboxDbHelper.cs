@@ -62,7 +62,7 @@ WHERE (@idsCount = 0 OR id IN (SELECT id FROM @ids)) AND type = @type;
                 Id = reader.GetInt64(reader.GetOrdinal("id")),
                 IsDeleted = reader.GetBoolean(reader.GetOrdinal("isDeleted")),
                 Payload = reader.GetString(reader.GetOrdinal("payload")),
-                ScheduledAt = reader.GetFieldValue<DateTimeOffset?>(reader.GetOrdinal("scheduledAt")),
+                ScheduledAt = reader.GetNullableFieldValue<DateTimeOffset?>("scheduledAt"),
                 Type = reader.GetString(reader.GetOrdinal("type")),
                 Locker = reader.IsDBNull(reader.GetOrdinal("locker"))
                     ? null
