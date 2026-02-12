@@ -10,6 +10,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "common", "common", "{4D8684
 		Directory.Packages.props = Directory.Packages.props
 		README.md = README.md
 		docker-compose.yaml = docker-compose.yaml
+		.github\workflows\dotnet.yml = .github\workflows\dotnet.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{9E642318-8B31-4255-81FB-803949BD0C2F}"

@@ -1,5 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <Title>Yautbox.InMemory</Title>
+    <PackageTags>outbox yautbox inmemory</PackageTags>
+    <Description>In-memory Yautbox provider using a bounded in-process queue. Ideal for tests and local development where durability is not required.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/maximiliysiss/yautbox/tree/master/src/Yautbox.InMemory</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/maximiliysiss/yautbox/tree/master/src/Yautbox.InMemory</RepositoryUrl>
+    <PackageId>Yautbox.InMemory</PackageId>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Yautbox\Yautbox.csproj"/>
   </ItemGroup>
