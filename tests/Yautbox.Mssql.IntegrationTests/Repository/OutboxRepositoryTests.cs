@@ -396,7 +396,7 @@ public class OutboxRepositoryTests : IAsyncLifetime
 
         updatedRows
             .Should().ContainSingle()
-            .Which.Should().BeEquivalentTo(expected);
+            .Which.Should().BeEquivalentTo(expected, opt => opt.UsingDateTime());
     }
 
     [Theory, AutoData]
