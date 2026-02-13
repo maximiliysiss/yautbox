@@ -1,6 +1,7 @@
 using System;
 using System.Data.Common;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
@@ -19,6 +20,7 @@ using Yautbox.Mssql.IntegrationTests.Cases;
 using Yautbox.Mssql.IntegrationTests.Shared.Options;
 using Yautbox.Mssql.Repositories;
 using Yautbox.Postgres.IntegrationTests.Shared.Options;
+using Yautbox.Registy;
 
 namespace Yautbox.Mssql.IntegrationTests.Shared.Fixture;
 
@@ -37,11 +39,16 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<IntegrationTe
     {
         public void ConfigureServices(IServiceCollection services)
         {
+            var version = $"{RuntimeInformation.FrameworkDescription}_";
+
             services
                 .AddSingleton<OutboxDbHelper>();
 
             services
-                .AddOutbox(b => b.UseMssql<OutboxConnectionFactory>());
+                .AddOutbox(b => b
+                    .UseMssql<OutboxConnectionFactory>()
+                    .SetRegistryPolicy(OutboxRegistryPolicy.Strict)
+                    .SetPrefix(version));
 
             services
                 .Decorate<IMssqlOutboxRepository, TrackingOutboxRepository>();

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoBogus;
@@ -30,7 +31,7 @@ internal sealed class OutboxDbHelper : IDbHelper, ITracker<OutboxMessageId>
 
     public async IAsyncEnumerable<TableRow> GetAsync<T>(string? identifier = null, params long[] ids)
     {
-        identifier ??= typeof(T).GetVersionFreeFullName();
+        identifier ??= $"{RuntimeInformation.FrameworkDescription}_{typeof(T).GetVersionFreeFullName()}";
 
         var tableName = $"[{_schema}].outbox_messages";
         var idTypeName = $"{_schema}.outbox_id_table_type";

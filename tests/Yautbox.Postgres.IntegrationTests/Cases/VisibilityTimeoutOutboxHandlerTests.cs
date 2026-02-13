@@ -28,19 +28,19 @@ public class VisibilityTimeoutOutboxHandlerTests(IntegrationTestFixture fixture)
         // Act
         await service.HandleAsync(message: new Message(61));
 
-        await WaitForHandledAsync(TimeSpan.FromSeconds(2));
+        await WaitForHandledAsync(TimeSpan.FromSeconds(5), 2);
         await Task.Delay(TimeSpan.FromMilliseconds(400));
 
         // Assert
         Handler.CallCount.Should().Be(2);
     }
 
-    private static async Task WaitForHandledAsync(TimeSpan timeout)
+    private static async Task WaitForHandledAsync(TimeSpan timeout, int expected)
     {
         var stopwatch = Stopwatch.StartNew();
         while (stopwatch.Elapsed < timeout)
         {
-            if (Handler.CallCount > 0)
+            if (Handler.CallCount == expected)
                 return;
 
             await Task.Delay(TimeSpan.FromMilliseconds(20));
@@ -63,7 +63,7 @@ public class VisibilityTimeoutOutboxHandlerTests(IntegrationTestFixture fixture)
             foreach (var _ in messages)
                 Interlocked.Increment(ref _callCount);
 
-            await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
+            await Task.Delay(TimeSpan.FromSeconds(1.5), cancellationToken);
         }
     }
 }

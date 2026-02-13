@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -40,7 +41,7 @@ public class CustomIdentifierOutboxHandlerTests(IntegrationTestFixture fixture)
         var handled = await WaitForHandledAsync(TimeSpan.FromSeconds(2));
 
         // Assert
-        identifier.Should().Be(CustomIdentifierRunnerOptions.IdentifierValue);
+        identifier.Should().Be($"{RuntimeInformation.FrameworkDescription}_{CustomIdentifierRunnerOptions.IdentifierValue}");
         handled.Should().BeTrue();
     }
 

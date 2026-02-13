@@ -1,6 +1,7 @@
 using System;
 using System.Data.Common;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
@@ -18,6 +19,7 @@ using Yautbox.Postgres.IntegrationTests.DbHelper;
 using Yautbox.Postgres.IntegrationTests.DbHelper.Repositories;
 using Yautbox.Postgres.IntegrationTests.Shared.Options;
 using Yautbox.Postgres.Repositories;
+using Yautbox.Registy;
 
 namespace Yautbox.Postgres.IntegrationTests.Shared.Fixture;
 
@@ -36,11 +38,16 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<IntegrationTe
     {
         public void ConfigureServices(IServiceCollection services)
         {
+            var version = $"{RuntimeInformation.FrameworkDescription}_";
+
             services
                 .AddSingleton<OutboxDbHelper>();
 
             services
-                .AddOutbox(b => b.UsePostgres<OutboxConnectionFactory>());
+                .AddOutbox(b => b
+                    .UsePostgres<OutboxConnectionFactory>()
+                    .SetRegistryPolicy(OutboxRegistryPolicy.Strict)
+                    .SetPrefix(version));
 
             services
                 .Decorate<IPostgresOutboxRepository, TrackingOutboxRepository>();

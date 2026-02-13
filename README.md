@@ -109,6 +109,29 @@ services
 - `ExecutionPolicy` (default: Parallel)
 - `CancellationPolicy` (default: Safe)
 
+### Infrastructure builder options
+
+`AddOutbox(Action<IOutboxInfrastructureBuilder>)` accepts additional infrastructure-level configuration:
+
+- `SetPrefix(string prefix)` prepends a custom prefix to registry identifiers returned by the outbox registry.
+- `SetRegistryPolicy(OutboxRegistryPolicy policy)` controls how the registry behaves for unregistered types:
+  `Lenient` uses defaults and does not throw; `Strict` throws `RegistryStrictException`.
+
+Example:
+
+```csharp
+using Yautbox.Extensions.Ioc;
+using Yautbox.InMemory.Extensions;
+using Yautbox.Registy;
+
+services.AddOutbox(builder =>
+{
+    builder.UseInMemory();
+    builder.SetPrefix("myapp_");
+    builder.SetRegistryPolicy(OutboxRegistryPolicy.Strict);
+});
+```
+
 ## How it works
 
 - `IOutboxService` enqueues messages into an `IOutboxProvider`.

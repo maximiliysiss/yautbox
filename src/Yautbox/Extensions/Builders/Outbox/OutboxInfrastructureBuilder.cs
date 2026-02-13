@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Yautbox.Infrastructure.Waiter;
 using Yautbox.Provider;
+using Yautbox.Registy;
 using Yautbox.Runner.Infrastructure;
 
 namespace Yautbox.Extensions.Builders.Outbox;
@@ -26,6 +27,24 @@ internal sealed class OutboxInfrastructureBuilder(IServiceCollection services) :
     public IOutboxInfrastructureBuilder SetPolicy<T>(ServiceLifetime lifetime = ServiceLifetime.Scoped) where T : class, IPolicyFactory
     {
         services.TryAdd(ServiceDescriptor.Describe(typeof(IPolicyFactory), typeof(T), lifetime));
+        return this;
+    }
+
+    public IOutboxInfrastructureBuilder SetPrefix(string prefix)
+    {
+        Services
+            .AddOptions<OutboxRegistryOptions>()
+            .Configure(opt => opt.Prefix = prefix);
+
+        return this;
+    }
+
+    public IOutboxInfrastructureBuilder SetRegistryPolicy(OutboxRegistryPolicy policy)
+    {
+        Services
+            .AddOptions<OutboxRegistryOptions>()
+            .Configure(opt => opt.Policy = policy);
+
         return this;
     }
 }

@@ -11,6 +11,8 @@ internal sealed class OutboxRegistryOptions
 {
     public Dictionary<Type, string> Identifiers { get; } = [];
     public Dictionary<Type, DeletePolicy> CancellingPolicies { get; } = [];
+    public string? Prefix { get; set; }
+    public OutboxRegistryPolicy Policy { get; set; } = OutboxRegistryPolicy.Lenient;
 
     public void Register<T>(IOptionsMonitor<IOutboxRunnerOptions> monitor)
     {
