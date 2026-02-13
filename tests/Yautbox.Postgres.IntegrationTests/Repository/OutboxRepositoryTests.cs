@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -28,8 +29,6 @@ namespace Yautbox.Postgres.IntegrationTests.Repository;
 [Collection(nameof(IntegrationTestCollection))]
 public class OutboxRepositoryTests : IAsyncLifetime
 {
-    private const string Identifier = nameof(TestEvent);
-
     private readonly IntegrationTestFixture _fixture;
 
     private readonly OutboxDbHelper _outboxDbHelper;
@@ -48,6 +47,8 @@ public class OutboxRepositoryTests : IAsyncLifetime
     public async Task AddAsync_ShouldAddNewRecord(TestEvent @event)
     {
         // Arrange
+        var identifier = $"{nameof(AddAsync_ShouldAddNewRecord)}_{RuntimeInformation.FrameworkDescription}";
+
         var repository = Create();
 
         var outboxMessage = new OutboxMessage<TestEvent>(
@@ -59,7 +60,7 @@ public class OutboxRepositoryTests : IAsyncLifetime
 
         // Act
         var outboxMessageIds = await repository
-            .AddAsync(identifier: Identifier, messages: [outboxMessage], cancellationToken: CancellationToken.None)
+            .AddAsync(identifier: identifier, messages: [outboxMessage], cancellationToken: CancellationToken.None)
             .ToArrayAsync();
 
         _outboxDbHelper.Track(outboxMessageIds);
@@ -72,14 +73,14 @@ public class OutboxRepositoryTests : IAsyncLifetime
         var expectedMessage = new
         {
             Id = outboxMessageId.Value,
-            Type = Identifier,
+            Type = identifier,
             IsDeleted = false,
         };
 
         var expectedPayload = JsonSerializer.Serialize(@event);
 
         var tableRows = await _outboxDbHelper
-            .GetAsync<TestEvent>(Identifier, outboxMessageId.Value)
+            .GetAsync<TestEvent>(identifier, outboxMessageId.Value)
             .ToArrayAsync();
 
         tableRows
@@ -92,7 +93,9 @@ public class OutboxRepositoryTests : IAsyncLifetime
     public async Task DeleteAsync_ShouldUpdateExistsRecord_WhenPolicyIsSafe()
     {
         // Arrange
-        var tableRow = OutboxDbHelper.TableRow.GetDefault(Identifier);
+        var identifier = $"{nameof(DeleteAsync_ShouldUpdateExistsRecord_WhenPolicyIsSafe)}_{RuntimeInformation.FrameworkDescription}";
+
+        var tableRow = OutboxDbHelper.TableRow.GetDefault(identifier);
 
         var id = await _outboxDbHelper.AddAsync(tableRow);
 
@@ -106,7 +109,7 @@ public class OutboxRepositoryTests : IAsyncLifetime
 
         // Assert
         var tableRows = await _outboxDbHelper
-            .GetAsync<TestEvent>(Identifier, id)
+            .GetAsync<TestEvent>(identifier, id)
             .ToArrayAsync();
 
         var expectedMessage = new
@@ -125,7 +128,9 @@ public class OutboxRepositoryTests : IAsyncLifetime
     public async Task DeleteAsync_ShouldDeleteExistsRecord_WhenPolicyIsDelete()
     {
         // Arrange
-        var tableRow = OutboxDbHelper.TableRow.GetDefault(Identifier);
+        var identifier = $"{nameof(DeleteAsync_ShouldDeleteExistsRecord_WhenPolicyIsDelete)}_{RuntimeInformation.FrameworkDescription}";
+
+        var tableRow = OutboxDbHelper.TableRow.GetDefault(identifier);
 
         var id = await _outboxDbHelper.AddAsync(tableRow);
 
@@ -139,7 +144,7 @@ public class OutboxRepositoryTests : IAsyncLifetime
 
         // Assert
         var tableRows = await _outboxDbHelper
-            .GetAsync<TestEvent>(Identifier, id)
+            .GetAsync<TestEvent>(identifier, id)
             .ToArrayAsync();
 
         tableRows.Should().BeEmpty();
@@ -149,12 +154,14 @@ public class OutboxRepositoryTests : IAsyncLifetime
     public async Task GetAsync_ShouldReturnEmpty_WhenThereIsNoRecord()
     {
         // Arrange
+        var identifier = $"{nameof(GetAsync_ShouldReturnEmpty_WhenThereIsNoRecord)}_{RuntimeInformation.FrameworkDescription}";
+
         var repository = Create();
 
         // Act
         var messages = await repository
             .GetAsync<TestEvent>(
-                identifier: Identifier,
+                identifier: $"{identifier}_",
                 count: 1,
                 locker: TimeSpan.FromMinutes(1),
                 cancellationToken: CancellationToken.None)
@@ -168,7 +175,9 @@ public class OutboxRepositoryTests : IAsyncLifetime
     public async Task GetAsync_ShouldReturnRecord(TestEvent @event)
     {
         // Arrange
-        var tableRow = OutboxDbHelper.TableRow.GetDefault(Identifier, JsonSerializer.Serialize(@event));
+        var identifier = $"{nameof(GetAsync_ShouldReturnRecord)}_{RuntimeInformation.FrameworkDescription}";
+
+        var tableRow = OutboxDbHelper.TableRow.GetDefault(identifier, JsonSerializer.Serialize(@event));
 
         var id = await _outboxDbHelper.AddAsync(tableRow);
 
@@ -177,7 +186,7 @@ public class OutboxRepositoryTests : IAsyncLifetime
         // Act
         var messages = await repository
             .GetAsync<TestEvent>(
-                identifier: Identifier,
+                identifier: identifier,
                 count: 1,
                 locker: TimeSpan.FromMinutes(1),
                 cancellationToken: CancellationToken.None)
@@ -199,12 +208,14 @@ public class OutboxRepositoryTests : IAsyncLifetime
     public async Task GetAsync_ShouldReturn_WhenGetItByPages()
     {
         // Arrange
+        var identifier = $"{nameof(GetAsync_ShouldReturn_WhenGetItByPages)}_{RuntimeInformation.FrameworkDescription}";
+
         var testEvents = Enumerable.Range(1, 10)
             .Select(i => new TestEvent(i, $"Name {i}"))
             .ToArray();
 
         var tableRows = testEvents
-            .Select(c => OutboxDbHelper.TableRow.GetDefault(Identifier, JsonSerializer.Serialize(c)))
+            .Select(c => OutboxDbHelper.TableRow.GetDefault(identifier, JsonSerializer.Serialize(c)))
             .ToArray();
 
         foreach (var tableRow in tableRows)
@@ -219,7 +230,7 @@ public class OutboxRepositoryTests : IAsyncLifetime
         // Act
         var firstPart = await repository
             .GetAsync<TestEvent>(
-                identifier: Identifier,
+                identifier: identifier,
                 count: 3,
                 locker: TimeSpan.FromMinutes(1),
                 cancellationToken: CancellationToken.None)
@@ -227,7 +238,7 @@ public class OutboxRepositoryTests : IAsyncLifetime
 
         var secondPart = await repository
             .GetAsync<TestEvent>(
-                identifier: Identifier,
+                identifier: identifier,
                 count: 3,
                 locker: TimeSpan.FromMinutes(1),
                 cancellationToken: CancellationToken.None)
@@ -235,7 +246,7 @@ public class OutboxRepositoryTests : IAsyncLifetime
 
         var thirdPart = await repository
             .GetAsync<TestEvent>(
-                identifier: Identifier,
+                identifier: identifier,
                 count: 5,
                 locker: TimeSpan.FromMinutes(1),
                 cancellationToken: CancellationToken.None)
@@ -270,12 +281,14 @@ public class OutboxRepositoryTests : IAsyncLifetime
     public async Task GetAsync_ShouldReturn_WhenGetItByPagesInParallel()
     {
         // Arrange
+        var identifier = $"{nameof(GetAsync_ShouldReturn_WhenGetItByPagesInParallel)}_{RuntimeInformation.FrameworkDescription}";
+
         var testEvents = Enumerable.Range(1, 42)
             .Select(i => new TestEvent(i, $"Name {i}"))
             .ToArray();
 
         var tableRows = testEvents
-            .Select(c => OutboxDbHelper.TableRow.GetDefault(Identifier, JsonSerializer.Serialize(c)))
+            .Select(c => OutboxDbHelper.TableRow.GetDefault(identifier, JsonSerializer.Serialize(c)))
             .ToArray();
 
         foreach (var tableRow in tableRows)
@@ -298,7 +311,7 @@ public class OutboxRepositoryTests : IAsyncLifetime
             var cycleTasks = Enumerable.Range(1, testEvents.Length / 4 + 1)
                 .Select(_ => repository
                     .GetAsync<TestEvent>(
-                        identifier: Identifier,
+                        identifier: identifier,
                         count: 4,
                         locker: TimeSpan.FromMinutes(5),
                         cancellationToken: CancellationToken.None)
@@ -338,8 +351,10 @@ public class OutboxRepositoryTests : IAsyncLifetime
     public async Task GetAsync_ShouldReturnEmpty_WhenRecordIsInFuture(TestEvent @event)
     {
         // Arrange
+        var identifier = $"{nameof(GetAsync_ShouldReturnEmpty_WhenRecordIsInFuture)}_{RuntimeInformation.FrameworkDescription}";
+
         var tableRow = OutboxDbHelper.TableRow
-            .GetFaker(Identifier, JsonSerializer.Serialize(@event))
+            .GetFaker(identifier, JsonSerializer.Serialize(@event))
             .RuleFor(c => c.ScheduledAt, DateTimeOffset.UtcNow.AddDays(1))
             .Generate();
 
@@ -350,7 +365,7 @@ public class OutboxRepositoryTests : IAsyncLifetime
         // Act
         var messages = await repository
             .GetAsync<TestEvent>(
-                identifier: Identifier,
+                identifier: identifier,
                 count: 1,
                 locker: TimeSpan.FromMinutes(1),
                 cancellationToken: CancellationToken.None)
@@ -363,8 +378,11 @@ public class OutboxRepositoryTests : IAsyncLifetime
     [Theory, AutoData]
     public async Task UpdateAsync_ShouldUpdateRecord(TestEvent @event)
     {
+        // Arrange
+        var identifier = $"{nameof(UpdateAsync_ShouldUpdateRecord)}_{RuntimeInformation.FrameworkDescription}";
+
         var tableRow = OutboxDbHelper.TableRow
-            .GetFaker(Identifier, JsonSerializer.Serialize(@event))
+            .GetFaker(identifier, JsonSerializer.Serialize(@event))
             .RuleFor(c => c.ScheduledAt, (DateTimeOffset?)null)
             .Generate();
 
@@ -391,7 +409,7 @@ public class OutboxRepositoryTests : IAsyncLifetime
         };
 
         var updatedRows = await _outboxDbHelper
-            .GetAsync<TestEvent>(Identifier, ids: [tableRow.Id])
+            .GetAsync<TestEvent>(identifier, ids: [tableRow.Id])
             .ToArrayAsync();
 
         updatedRows
@@ -403,8 +421,10 @@ public class OutboxRepositoryTests : IAsyncLifetime
     public async Task CleanData_ShouldCleanData(TestEvent @event)
     {
         // Arrange
+        var identifier = $"{nameof(CleanData_ShouldCleanData)}_{RuntimeInformation.FrameworkDescription}";
+
         var faker = OutboxDbHelper.TableRow
-            .GetFaker(Identifier, JsonSerializer.Serialize(@event))
+            .GetFaker(identifier, JsonSerializer.Serialize(@event))
             .RuleFor(c => c.ScheduledAt, (DateTimeOffset?)null)
             .RuleFor(c => c.IsDeleted, true);
 
@@ -426,11 +446,11 @@ public class OutboxRepositoryTests : IAsyncLifetime
         var repository = Create();
 
         // Act
-        await repository.CleanAsync(Identifier, now.AddHours(-1), CancellationToken.None);
+        await repository.CleanAsync(identifier, now.AddHours(-1), CancellationToken.None);
 
         // Assert
         var tableRows = await _outboxDbHelper
-            .GetAsync<TestEvent>(Identifier)
+            .GetAsync<TestEvent>(identifier)
             .ToArrayAsync();
 
         tableRows
