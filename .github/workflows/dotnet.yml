@@ -47,6 +47,11 @@ jobs:
 
     run_test:
         runs-on: ubuntu-latest
+
+        strategy:
+            matrix:
+                framework: [ net8.0, net9.0, net10.0 ]
+
         services:
             postgres:
                 image: postgres:14
@@ -65,8 +70,14 @@ jobs:
             -   uses: actions/checkout@v3
             -   name: Setup .NET
                 uses: actions/setup-dotnet@v3
-            -   name: Run tests
-                run: dotnet test --configuration Release
+            -   name: Run tests (${{ matrix.framework }})
+                timeout-minutes: 15
+                run: |
+                    dotnet test \
+                      --configuration Release \
+                      --framework ${{ matrix.framework }} \
+                      --blame-hang \
+                      --blame-hang-timeout 10m
 
     deploy:
         # Publish only when creating a GitHub Release

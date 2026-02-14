@@ -46,6 +46,8 @@ internal sealed class MssqlOutboxRepository : IMssqlOutboxRepository
         var tableName = $"[{_options.SchemaName}].outbox_messages";
 
         var query = $@"
+SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+
 WITH cte AS (
     SELECT TOP (@count)
         id,
@@ -67,48 +69,66 @@ OUTPUT inserted.id, inserted.payload, inserted.attempt,
        inserted.scheduled_at AS scheduledAt, inserted.created_at AS createdAt;
 ";
 
+        var messages = new List<OutboxMessage<T>>(count);
+
         var now = _dateTimeProvider.GetNow();
 
-        await using var connection = await _connectionFactory.GetConnectionAsync(cancellationToken);
-
-        await using DbCommand command = connection.CreateCommand();
-        command.CommandText = query;
-        command.Parameters.Add("count", count);
-        command.Parameters.Add("type", identifier);
-        command.Parameters.Add("now", now);
-        command.Parameters.Add("locker", now.Add(locker));
-
-        await connection.OpenAsync(cancellationToken);
-
-        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-
-        while (await reader.ReadAsync(cancellationToken))
+        await using (var connection = await _connectionFactory.GetConnectionAsync(cancellationToken))
         {
-            var payloadString = reader.GetNullableString("payload");
+            await connection.OpenAsync(cancellationToken);
 
-            if (string.IsNullOrWhiteSpace(payloadString))
+            await using var transaction = await connection.BeginTransactionAsync(
+                isolationLevel: IsolationLevel.RepeatableRead,
+                cancellationToken: cancellationToken);
+
+            await using DbCommand command = connection.CreateCommand();
+
+            command.CommandText = query;
+            command.Transaction = transaction;
+
+            command.Parameters.Add("count", count);
+            command.Parameters.Add("type", identifier);
+            command.Parameters.Add("now", now);
+            command.Parameters.Add("locker", now.Add(locker));
+
+            await using (var reader = await command.ExecuteReaderAsync(cancellationToken))
             {
-                _logger.OutboxPayloadInvalid(identifier);
-                continue;
+                while (await reader.ReadAsync(cancellationToken))
+                {
+                    var payloadString = reader.GetNullableString("payload");
+
+                    if (string.IsNullOrWhiteSpace(payloadString))
+                    {
+                        _logger.OutboxPayloadInvalid(identifier);
+                        continue;
+                    }
+
+                    var payload = JsonSerializer.Deserialize<T>(
+                        json: payloadString,
+                        options: _options.JsonSerializerOptions);
+
+                    if (payload is null)
+                    {
+                        _logger.OutboxPayloadInvalid(identifier);
+                        continue;
+                    }
+
+                    var message = new OutboxMessage<T>(
+                        Id: new OutboxMessageId(reader.GetInt64("id")),
+                        Payload: payload,
+                        Attempt: reader.GetInt32("attempt"),
+                        ScheduledAt: reader.GetNullableFieldValue<DateTimeOffset?>("scheduledAt"),
+                        CreatedAt: reader.GetFieldValue<DateTimeOffset>("createdAt"));
+
+                    messages.Add(message);
+                }
             }
 
-            var payload = JsonSerializer.Deserialize<T>(
-                json: payloadString,
-                options: _options.JsonSerializerOptions);
-
-            if (payload is null)
-            {
-                _logger.OutboxPayloadInvalid(identifier);
-                continue;
-            }
-
-            yield return new OutboxMessage<T>(
-                Id: new OutboxMessageId(reader.GetInt64("id")),
-                Payload: payload,
-                Attempt: reader.GetInt32("attempt"),
-                ScheduledAt: reader.GetNullableFieldValue<DateTimeOffset?>("scheduledAt"),
-                CreatedAt: reader.GetFieldValue<DateTimeOffset>("createdAt"));
+            await transaction.CommitAsync(cancellationToken);
         }
+
+        foreach (var message in messages)
+            yield return message;
     }
 
     public async IAsyncEnumerable<OutboxMessageId> AddAsync<T>(

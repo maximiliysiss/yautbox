@@ -138,11 +138,11 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<IntegrationTe
 
     private sealed class OutboxConnectionFactory(IConfiguration configuration) : IOutboxConnectionFactory
     {
-        public string GetConnectionString()
-            => configuration.GetConnectionString("Outbox") ??
-               throw new InvalidOperationException("Outbox connection string not configured");
+        private readonly NpgsqlDataSource _dataSource = new NpgsqlDataSourceBuilder(configuration.GetConnectionString("Outbox")).Build();
+
+        public string GetConnectionString() => _dataSource.ConnectionString;
 
         public Task<DbConnection> GetConnectionAsync(CancellationToken cancellationToken)
-            => Task.FromResult<DbConnection>(new NpgsqlConnection(GetConnectionString()));
+            => Task.FromResult<DbConnection>(_dataSource.CreateConnection());
     }
 }
