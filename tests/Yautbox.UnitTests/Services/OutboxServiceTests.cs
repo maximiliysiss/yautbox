@@ -44,10 +44,10 @@ public class OutboxServiceTests
         var message = new Message();
 
         // Act
-        var outboxMessageId = await service.HandleAsync(message: message);
+        var outboxMessageId = await service.HandleAsync(messages: [message]);
 
         // Assert
-        outboxMessageId.Should().Be(OutboxMessageId.Empty);
+        outboxMessageId.Should().ContainSingle().Which.Should().Be(OutboxMessageId.Empty);
 
         var expected = new OutboxMessage<Message>(
             Id: OutboxMessageId.Empty,

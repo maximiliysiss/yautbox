@@ -9,14 +9,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Npgsql;
+using NpgsqlTypes;
 using Yautbox.Entities;
+using Yautbox.Postgres.Extensions.Logger;
+using Yautbox.Postgres.Extensions.Npgsql;
 using Yautbox.Postgres.Infrastructure.Database;
 using Yautbox.Postgres.Infrastructure.DateTime;
 using Yautbox.Postgres.Options;
-using Npgsql;
-using NpgsqlTypes;
-using Yautbox.Postgres.Extensions.Logger;
-using Yautbox.Postgres.Extensions.Npgsql;
 using Yautbox.Runner.Options;
 
 namespace Yautbox.Postgres.Repositories;

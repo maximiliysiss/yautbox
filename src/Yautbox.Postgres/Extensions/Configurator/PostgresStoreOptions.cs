@@ -1,6 +1,5 @@
 using System;
 using System.Text.Json;
-using Yautbox.Runner.Options;
 
 namespace Yautbox.Postgres.Extensions.Configurator;
 

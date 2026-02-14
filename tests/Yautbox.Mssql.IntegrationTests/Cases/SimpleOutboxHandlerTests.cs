@@ -6,8 +6,8 @@ using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Polly;
 using Xunit;
-using Yautbox.Extensions.Outbox;
 using Yautbox.Handlers;
+using Yautbox.Mssql.IntegrationTests.Shared.Extensions;
 using Yautbox.Mssql.IntegrationTests.Shared.Fixture;
 using Yautbox.Services;
 

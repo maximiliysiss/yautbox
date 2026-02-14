@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using Yautbox.Extensions.Outbox;
 using Yautbox.Handlers;
+using Yautbox.Postgres.IntegrationTests.Shared.Extensions;
 using Yautbox.Postgres.IntegrationTests.Shared.Fixture;
 using Yautbox.Services;
 
