@@ -10,6 +10,11 @@
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <Authors>maximiliysiss</Authors>
+    <Version>1.0.1</Version>
+  </PropertyGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="$(RootNamespace).UnitTests"/>
     <InternalsVisibleTo Include="$(RootNamespace).IntegrationTests"/>
