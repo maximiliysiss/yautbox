@@ -1,4 +1,4 @@
-# Yautbox
+# Yautbox (Yet Another Outbox)
 
 [![.NET](https://github.com/maximiliysiss/yautbox/actions/workflows/dotnet.yml/badge.svg?branch=master&event=push)](https://github.com/maximiliysiss/yautbox/actions/workflows/dotnet.yml)
 
