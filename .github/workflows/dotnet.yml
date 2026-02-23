@@ -85,7 +85,8 @@ jobs:
                       --configuration Release \
                       --framework ${{ matrix.framework }} \
                       --blame-hang \
-                      --blame-hang-timeout 10m
+                      --blame-hang-timeout 10m \
+                      --verbosity detailed
 
     deploy:
         # Publish only when creating a GitHub Release
