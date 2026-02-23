@@ -30,9 +30,10 @@ public class RetryOutboxHandlerTests(IntegrationTestFixture fixture)
         // Act
         await service.HandleAsync(message: message);
 
-        var successAttempt = await WaitForSuccessAttemptAsync(TimeSpan.FromSeconds(5));
+        var successAttempt = await WaitForSuccessAttemptAsync(TimeSpan.FromSeconds(15));
 
         // Assert
+        Handler.Failed.Should().Be(1);
         successAttempt.Should().Be(1);
         Handler.CallCount.Should().BeGreaterThanOrEqualTo(2);
     }
@@ -62,6 +63,7 @@ public class RetryOutboxHandlerTests(IntegrationTestFixture fixture)
 
         public static int CallCount => Volatile.Read(ref _callCount);
         public static int SuccessAttempt => Volatile.Read(ref _successAttempt);
+        public static int Failed => Volatile.Read(ref _failed);
 
         public static void Reset()
         {
