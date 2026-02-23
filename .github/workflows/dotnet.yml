@@ -84,9 +84,9 @@ jobs:
                     dotnet test \
                       --configuration Release \
                       --framework ${{ matrix.framework }} \
+                      --logger "console;verbosity=normal" \
                       --blame-hang \
-                      --blame-hang-timeout 10m \
-                      --verbosity detailed
+                      --blame-hang-timeout 10m
 
     deploy:
         # Publish only when creating a GitHub Release
