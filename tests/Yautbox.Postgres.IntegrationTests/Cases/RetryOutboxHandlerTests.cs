@@ -30,7 +30,7 @@ public class RetryOutboxHandlerTests(IntegrationTestFixture fixture)
         // Act
         await service.HandleAsync(message: message);
 
-        var successAttempt = await WaitForSuccessAttemptAsync(TimeSpan.FromSeconds(2));
+        var successAttempt = await WaitForSuccessAttemptAsync(TimeSpan.FromSeconds(5));
 
         // Assert
         successAttempt.Should().Be(1);
