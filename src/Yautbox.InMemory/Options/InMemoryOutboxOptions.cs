@@ -1,5 +1,8 @@
 namespace Yautbox.InMemory.Options;
 
+/// <summary>
+/// Configures the in-memory outbox storage.
+/// </summary>
 public sealed class InMemoryOutboxOptions
 {
     /// <summary>

@@ -1,5 +1,8 @@
 namespace Yautbox.Runner.Options;
 
+/// <summary>
+/// Defines how handled messages are removed from storage.
+/// </summary>
 public enum DeletePolicy
 {
     /// <summary>

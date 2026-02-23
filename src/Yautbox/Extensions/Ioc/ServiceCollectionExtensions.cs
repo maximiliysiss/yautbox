@@ -13,8 +13,17 @@ using Yautbox.Services;
 
 namespace Yautbox.Extensions.Ioc;
 
+/// <summary>
+/// Dependency injection helpers for configuring the outbox.
+/// </summary>
 public static class ServiceCollectionExtensions
 {
+    /// <summary>
+    /// Registers core outbox services and infrastructure.
+    /// </summary>
+    /// <param name="services">Service collection to configure.</param>
+    /// <param name="configureInfrastructure">Callback to configure infrastructure options.</param>
+    /// <returns>The same service collection for chaining.</returns>
     public static IServiceCollection AddOutbox(
         this IServiceCollection services,
         Action<IOutboxInfrastructureBuilder> configureInfrastructure)
@@ -39,6 +48,14 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
+    /// <summary>
+    /// Registers an outbox handler and its background processing services.
+    /// </summary>
+    /// <typeparam name="TPayload">Payload type handled by the handler.</typeparam>
+    /// <typeparam name="THandler">Handler type to register.</typeparam>
+    /// <param name="services">Service collection to configure.</param>
+    /// <param name="lifetime">Service lifetime for the handler.</param>
+    /// <returns>An outbox handler builder for further configuration.</returns>
     public static IOutboxHandlerBuilder AddOutboxHandler<TPayload, THandler>(
         this IServiceCollection services,
         ServiceLifetime lifetime = ServiceLifetime.Scoped)

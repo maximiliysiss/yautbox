@@ -7,11 +7,19 @@ using Yautbox.Runner.Options;
 
 namespace Yautbox.Provider;
 
+/// <summary>
+/// Defines storage operations for outbox messages.
+/// </summary>
 public interface IOutboxProvider
 {
     /// <summary>
     /// Get outbox messages to handle
     /// </summary>
+    /// <typeparam name="T">Payload type of the messages.</typeparam>
+    /// <param name="identifier">Outbox handler identifier.</param>
+    /// <param name="count">Maximum number of messages to return.</param>
+    /// <param name="visibility">Visibility timeout for the messages.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
     Task<IReadOnlyCollection<OutboxMessage<T>>> GetAsync<T>(
         string identifier,
         int count,
@@ -21,6 +29,10 @@ public interface IOutboxProvider
     /// <summary>
     /// Add messages to outbox
     /// </summary>
+    /// <typeparam name="T">Payload type of the messages.</typeparam>
+    /// <param name="identifier">Outbox handler identifier.</param>
+    /// <param name="messages">Messages to add to the outbox.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
     Task<IReadOnlyCollection<OutboxMessageId>> AddAsync<T>(
         string identifier,
         IReadOnlyCollection<OutboxMessage<T>> messages,
@@ -29,6 +41,10 @@ public interface IOutboxProvider
     /// <summary>
     /// Cancel outbox handling by ids
     /// </summary>
+    /// <param name="identifier">Outbox handler identifier.</param>
+    /// <param name="ids">Outbox message identifiers to cancel.</param>
+    /// <param name="policy">Cancellation policy for the messages.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
     Task CancelAsync(
         string identifier,
         IReadOnlyCollection<OutboxMessageId> ids,
@@ -38,6 +54,10 @@ public interface IOutboxProvider
     /// <summary>
     /// Delete outbox messages by ids
     /// </summary>
+    /// <param name="identifier">Outbox handler identifier.</param>
+    /// <param name="ids">Outbox message identifiers to delete.</param>
+    /// <param name="policy">Delete policy for the messages.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
     Task DeleteAsync(
         string identifier,
         IReadOnlyCollection<OutboxMessageId> ids,
@@ -47,6 +67,9 @@ public interface IOutboxProvider
     /// <summary>
     /// Clean safe-deleted outbox messages older than the specified date
     /// </summary>
+    /// <param name="identifier">Outbox handler identifier.</param>
+    /// <param name="olderThan">Remove messages older than this timestamp.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
     Task CleanAsync(
         string identifier,
         DateTimeOffset olderThan,
@@ -55,6 +78,10 @@ public interface IOutboxProvider
     /// <summary>
     /// Retry failed messages
     /// </summary>
+    /// <typeparam name="T">Payload type of the messages.</typeparam>
+    /// <param name="identifier">Outbox handler identifier.</param>
+    /// <param name="messages">Messages to retry.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
     Task RetryAsync<T>(
         string identifier,
         IReadOnlyCollection<OutboxMessage<T>> messages,

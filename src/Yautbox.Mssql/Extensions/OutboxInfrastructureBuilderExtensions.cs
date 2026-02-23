@@ -18,8 +18,18 @@ using Yautbox.Mssql.Repositories;
 
 namespace Yautbox.Mssql.Extensions;
 
+/// <summary>
+/// Extension methods for configuring the MSSQL outbox infrastructure.
+/// </summary>
 public static class OutboxInfrastructureBuilderExtensions
 {
+    /// <summary>
+    /// Configures MSSQL outbox infrastructure using a connection string.
+    /// </summary>
+    /// <param name="builder">Infrastructure builder to configure.</param>
+    /// <param name="connectionString">Connection string for the MSSQL database.</param>
+    /// <param name="options">Optional store configuration overrides.</param>
+    /// <returns>The same builder instance for chaining.</returns>
     public static IOutboxInfrastructureBuilder UseMssql(
         this IOutboxInfrastructureBuilder builder,
         string connectionString,
@@ -33,6 +43,13 @@ public static class OutboxInfrastructureBuilderExtensions
         return builder.UseMssql<DefaultConnectionFactory>(options);
     }
 
+    /// <summary>
+    /// Configures MSSQL outbox infrastructure using a connection factory.
+    /// </summary>
+    /// <typeparam name="TConnectionFactory">Connection factory type.</typeparam>
+    /// <param name="builder">Infrastructure builder to configure.</param>
+    /// <param name="options">Optional store configuration overrides.</param>
+    /// <returns>The same builder instance for chaining.</returns>
     public static IOutboxInfrastructureBuilder UseMssql<TConnectionFactory>(
         this IOutboxInfrastructureBuilder builder,
         MssqlStoreOptions? options = null)

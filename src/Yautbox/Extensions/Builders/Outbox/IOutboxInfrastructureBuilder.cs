@@ -6,8 +6,14 @@ using Yautbox.Runner.Infrastructure;
 
 namespace Yautbox.Extensions.Builders.Outbox;
 
+/// <summary>
+/// Builds and configures outbox infrastructure services.
+/// </summary>
 public interface IOutboxInfrastructureBuilder
 {
+    /// <summary>
+    /// Gets the service collection used for registrations.
+    /// </summary>
     IServiceCollection Services { get; }
 
     /// <summary>

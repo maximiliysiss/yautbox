@@ -3,6 +3,9 @@ using System.Text.Json;
 
 namespace Yautbox.Mssql.Extensions.Configurator;
 
+/// <summary>
+/// Configures the MSSQL outbox repository.
+/// </summary>
 public sealed class MssqlStoreOptions
 {
     /// <summary>

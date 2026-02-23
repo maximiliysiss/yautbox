@@ -7,8 +7,16 @@ using Yautbox.InMemory.Waiter;
 
 namespace Yautbox.InMemory.Extensions;
 
+/// <summary>
+/// Extension methods for configuring the in-memory outbox infrastructure.
+/// </summary>
 public static class OutboxInfrastructureBuilderExtensions
 {
+    /// <summary>
+    /// Configures an in-memory outbox provider and options.
+    /// </summary>
+    /// <param name="builder">Infrastructure builder to configure.</param>
+    /// <param name="options">Optional in-memory options override.</param>
     public static void UseInMemory(this IOutboxInfrastructureBuilder builder, InMemoryOutboxOptions? options = null)
     {
         builder

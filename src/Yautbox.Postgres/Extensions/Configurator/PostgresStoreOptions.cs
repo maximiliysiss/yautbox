@@ -3,6 +3,9 @@ using System.Text.Json;
 
 namespace Yautbox.Postgres.Extensions.Configurator;
 
+/// <summary>
+/// Configures the Postgres outbox repository.
+/// </summary>
 public sealed class PostgresStoreOptions
 {
     /// <summary>

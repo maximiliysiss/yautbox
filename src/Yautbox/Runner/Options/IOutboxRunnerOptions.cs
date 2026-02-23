@@ -2,6 +2,9 @@ using System;
 
 namespace Yautbox.Runner.Options;
 
+/// <summary>
+/// Defines configuration options for outbox handler execution.
+/// </summary>
 public interface IOutboxRunnerOptions
 {
     /// <summary>
