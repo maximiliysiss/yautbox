@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Yautbox.Infrastructure.Waiter;
+using Yautbox.Metrics;
 using Yautbox.Provider;
 using Yautbox.Registy;
 using Yautbox.Runner.Infrastructure;
@@ -54,4 +55,11 @@ public interface IOutboxInfrastructureBuilder
     /// <param name="policy">The desired registry policy, determining the behavior of the Outbox registry. Must be a value of <see cref="OutboxRegistryPolicy"/>.</param>
     /// <returns>The current instance of <see cref="IOutboxInfrastructureBuilder"/>, configured with the specified registry policy.</returns>
     IOutboxInfrastructureBuilder SetRegistryPolicy(OutboxRegistryPolicy policy);
+
+    /// <summary>
+    /// Configures and registers a metrics handler of the specified type with the specified service lifetime.
+    /// </summary>
+    /// <typeparam name="T">The metrics handler type to register. Must implement <see cref="IMetricsHandler"/>.</typeparam>
+    /// <returns>The current instance of <see cref="IOutboxInfrastructureBuilder"/>, configured with the specified metrics handler.</returns>
+    IOutboxInfrastructureBuilder SetMetrics<T>() where T : IMetricsHandler;
 }

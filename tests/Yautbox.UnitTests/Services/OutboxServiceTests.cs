@@ -11,6 +11,7 @@ using Yautbox.Entities;
 using Yautbox.Extensions.Outbox;
 using Yautbox.Infrastructure.DateTime;
 using Yautbox.Infrastructure.Waiter;
+using Yautbox.Metrics;
 using Yautbox.Provider;
 using Yautbox.Registy;
 using Yautbox.Runner.Options;
@@ -110,7 +111,8 @@ public class OutboxServiceTests
             NullLogger<OutboxService>.Instance,
             waiter,
             dateTimeProvider ?? new DateTimeProvider(),
-            outboxRegistry);
+            outboxRegistry,
+            new DefaultMetricsHandler());
     }
 
     private sealed class Message;

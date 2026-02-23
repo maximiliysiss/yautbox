@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,6 +12,7 @@ using Yautbox.Handlers;
 using Yautbox.Infrastructure.DateTime;
 using Yautbox.Infrastructure.Hosted;
 using Yautbox.Infrastructure.Waiter;
+using Yautbox.Metrics;
 using Yautbox.Provider;
 using Yautbox.Registy;
 using Yautbox.Runner.Options;
@@ -22,6 +24,7 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
     private readonly IServiceProvider _serviceProvider;
     private readonly IInfrastructureReadinessWaiter _readinessWaiter;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly IMetricsHandler _metricsHandler;
 
     private readonly ILogger<OutboxCleanerRunner<THandler, TPayload>> _logger;
 
@@ -32,13 +35,15 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
         IOptionsMonitor<IOutboxRunnerOptions> options,
         IServiceProvider serviceProvider,
         IInfrastructureReadinessWaiter readinessWaiter,
-        IDateTimeProvider dateTimeProvider) : base(logger)
+        IDateTimeProvider dateTimeProvider,
+        IMetricsHandler metricsHandler) : base(logger)
     {
         _logger = logger;
         _options = options;
         _serviceProvider = serviceProvider;
         _readinessWaiter = readinessWaiter;
         _dateTimeProvider = dateTimeProvider;
+        _metricsHandler = metricsHandler;
     }
 
     protected override async Task ExecuteAsync(CancellationTokenSource reloadTokenSource)
@@ -85,7 +90,13 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
                 var olderThan = _dateTimeProvider.GetNow() - options.BackupInterval.Value;
                 var identifier = registry.GetIdentifier<TPayload>();
 
+                var startTimestamp = Stopwatch.GetTimestamp();
+
                 await provider.CleanAsync(identifier, olderThan, cancellationToken);
+
+                var elapsed = Stopwatch.GetElapsedTime(startTimestamp);
+
+                await _metricsHandler.CleanedInAsync(identifier, elapsed, cancellationToken);
 
                 await Task.Delay(options.BackupInterval.Value, cancellationToken);
             }

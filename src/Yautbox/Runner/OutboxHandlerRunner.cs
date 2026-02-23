@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,13 +9,13 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Yautbox.Extensions.Common;
 using Yautbox.Extensions.DateTime;
-using Yautbox.Extensions.Enumerable;
 using Yautbox.Extensions.Logger;
 using Yautbox.Extensions.Options;
 using Yautbox.Handlers;
 using Yautbox.Infrastructure.DateTime;
 using Yautbox.Infrastructure.Hosted;
 using Yautbox.Infrastructure.Waiter;
+using Yautbox.Metrics;
 using Yautbox.Provider;
 using Yautbox.Registy;
 using Yautbox.Runner.Infrastructure;
@@ -27,6 +28,7 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
     private readonly IServiceProvider _serviceProvider;
     private readonly IInfrastructureReadinessWaiter _readinessWaiter;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly IMetricsHandler _metricsHandler;
 
     private readonly IOptionsMonitor<IOutboxRunnerOptions> _options;
 
@@ -37,13 +39,15 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
         IOptionsMonitor<IOutboxRunnerOptions> options,
         IInfrastructureReadinessWaiter readinessWaiter,
         ILogger<OutboxHandlerRunner<THandler, TPayload>> logger,
-        IDateTimeProvider dateTimeProvider)
+        IDateTimeProvider dateTimeProvider,
+        IMetricsHandler metricsHandler)
         : base(logger)
     {
         _serviceProvider = serviceProvider;
         _readinessWaiter = readinessWaiter;
         _logger = logger;
         _dateTimeProvider = dateTimeProvider;
+        _metricsHandler = metricsHandler;
         _options = options;
     }
 
@@ -149,27 +153,52 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
 
         var stoppingToken = cancellationTokenSource.Token;
 
-        var loopTasks = await provider
-            .GetAsync<TPayload>(identifier, options.BufferSize, options.Visibility, stoppingToken)
-            .ChunkAsync(options.PerBufferCount, stoppingToken)
+        var startTimestamp = Stopwatch.GetTimestamp();
+
+        var outboxMessages = await provider.GetAsync<TPayload>(
+            identifier: identifier,
+            count: options.BufferSize,
+            visibility: options.Visibility,
+            cancellationToken: stoppingToken);
+
+        var elapsed = Stopwatch.GetElapsedTime(startTimestamp);
+
+        await _metricsHandler.ReadedInAsync(identifier, elapsed, stoppingToken);
+
+        if (outboxMessages.Count is 0)
+            return false;
+
+        var loopTasks = outboxMessages
+            .Chunk(options.PerBufferCount)
             .Select(g => LoopAsync(g, stoppingToken))
-            .ToArrayAsync(stoppingToken);
+            .ToArray();
 
         if (loopTasks is [])
             return false;
 
         var contexts = await Task.WhenAll(loopTasks);
 
+        var toRetryMessages = contexts
+            .SelectMany(c => c.Retries.Select(MapRetry))
+            .ToArray();
+
+        var toDeleteMessages = contexts
+            .SelectMany(c => c.Success)
+            .ToArray();
+
         await provider.RetryAsync(
             identifier: identifier,
-            messages: [.. contexts.SelectMany(c => c.Retries).Select(MapRetry)],
+            messages: toRetryMessages,
             cancellationToken: stoppingToken);
 
         await provider.DeleteAsync(
             identifier: identifier,
-            ids: [.. contexts.SelectMany(c => c.Success)],
+            ids: toDeleteMessages,
             policy: options.DeletePolicy,
             cancellationToken: stoppingToken);
+
+        await _metricsHandler.RetriedAsync(identifier, toRetryMessages.Length, stoppingToken);
+        await _metricsHandler.DeletedAsync(identifier, toDeleteMessages.Length, stoppingToken);
 
         return contexts.Any(c => c.IsSuccess);
 
@@ -181,8 +210,18 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
 
             try
             {
+                var startTimestamp = Stopwatch.GetTimestamp();
+
                 await handler.HandleAsync(
                     messages: [.. messages.Select(c => MapMessage(c, context))],
+                    cancellationToken: stoppingToken);
+
+                var elapsed = Stopwatch.GetElapsedTime(startTimestamp);
+
+                await _metricsHandler.HandledAsync(
+                    identifier: identifier,
+                    count: messages.Count,
+                    elapsed: elapsed,
                     cancellationToken: stoppingToken);
             }
             catch (Exception ex)

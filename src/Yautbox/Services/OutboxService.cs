@@ -8,6 +8,7 @@ using Yautbox.Entities;
 using Yautbox.Extensions.Logger;
 using Yautbox.Infrastructure.DateTime;
 using Yautbox.Infrastructure.Waiter;
+using Yautbox.Metrics;
 using Yautbox.Provider;
 using Yautbox.Registy;
 
@@ -25,18 +26,22 @@ internal sealed class OutboxService : IOutboxService
 
     private readonly IDateTimeProvider _dateTimeProvider;
 
+    private readonly IMetricsHandler _metricsHandler;
+
     public OutboxService(
         IOutboxProvider outboxProvider,
         ILogger<OutboxService> logger,
         IInfrastructureReadinessWaiter waiter,
         IDateTimeProvider dateTimeProvider,
-        IOutboxRegistry registry)
+        IOutboxRegistry registry,
+        IMetricsHandler metricsHandler)
     {
         _outboxProvider = outboxProvider;
         _logger = logger;
         _waiter = waiter;
         _dateTimeProvider = dateTimeProvider;
         _registry = registry;
+        _metricsHandler = metricsHandler;
     }
 
     public async Task<IEnumerable<OutboxMessageId>> HandleAsync<T>(
@@ -48,9 +53,16 @@ internal sealed class OutboxService : IOutboxService
 
         _logger.AddedOutboxMessage();
 
+        var identifier = _registry.GetIdentifier<T>();
+
         var outboxMessageIds = await _outboxProvider.AddAsync(
-            identifier: _registry.GetIdentifier<T>(),
+            identifier: identifier,
             messages: [.. messages.Select(Map)],
+            cancellationToken: cancellationToken);
+
+        await _metricsHandler.AddedAsync(
+            identifier: identifier,
+            count: outboxMessageIds.Count,
             cancellationToken: cancellationToken);
 
         return outboxMessageIds;
@@ -74,10 +86,18 @@ internal sealed class OutboxService : IOutboxService
 
         _logger.CancelOutboxMessage();
 
+        var identifier = _registry.GetIdentifier<T>();
+        var outboxMessageIds = ids.ToArray();
+
         await _outboxProvider.CancelAsync(
-            identifier: _registry.GetIdentifier<T>(),
-            ids: [.. ids],
+            identifier: identifier,
+            ids: outboxMessageIds,
             policy: _registry.GetCancellationPolicy<T>(),
+            cancellationToken: cancellationToken);
+
+        await _metricsHandler.CanceledAsync(
+            identifier: identifier,
+            count: outboxMessageIds.Length,
             cancellationToken: cancellationToken);
     }
 }

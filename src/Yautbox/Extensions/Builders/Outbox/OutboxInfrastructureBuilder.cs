@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Yautbox.Infrastructure.Waiter;
+using Yautbox.Metrics;
 using Yautbox.Provider;
 using Yautbox.Registy;
 using Yautbox.Runner.Infrastructure;
@@ -45,6 +46,12 @@ internal sealed class OutboxInfrastructureBuilder(IServiceCollection services) :
             .AddOptions<OutboxRegistryOptions>()
             .Configure(opt => opt.Policy = policy);
 
+        return this;
+    }
+
+    public IOutboxInfrastructureBuilder SetMetrics<T>() where T : IMetricsHandler
+    {
+        Services.TryAdd(ServiceDescriptor.Describe(typeof(IMetricsHandler), typeof(T), ServiceLifetime.Singleton));
         return this;
     }
 }

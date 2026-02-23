@@ -13,6 +13,7 @@ using Yautbox.Extensions.Ioc;
 using Yautbox.Extensions.Types;
 using Yautbox.Handlers;
 using Yautbox.Infrastructure.DateTime;
+using Yautbox.Metrics;
 using Yautbox.Provider;
 using Yautbox.Registy;
 using Yautbox.Runner.Options;
@@ -29,7 +30,9 @@ public class ServiceCollectionExtensionsTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddOutbox(builder => builder.SetProvider<TestOutboxProvider>());
+        services.AddOutbox(builder => builder
+            .SetProvider<TestOutboxProvider>()
+            .SetMetrics<MetricsHandler>());
 
         // Assert
         services.Should().ContainSingle(descriptor =>
@@ -46,6 +49,11 @@ public class ServiceCollectionExtensionsTests
             descriptor.ServiceType == typeof(IOutboxRegistry) &&
             descriptor.ImplementationType == typeof(OutboxRegistry) &&
             descriptor.Lifetime == ServiceLifetime.Scoped);
+
+        services.Should().ContainSingle(descriptor =>
+            descriptor.ServiceType == typeof(IMetricsHandler) &&
+            descriptor.ImplementationType == typeof(MetricsHandler) &&
+            descriptor.Lifetime == ServiceLifetime.Singleton);
     }
 
     [Fact]
@@ -125,6 +133,30 @@ public class ServiceCollectionExtensionsTests
     {
         public Task HandleAsync(IEnumerable<Handlers.OutboxMessage<MessageB>> messages, CancellationToken cancellationToken) =>
             Task.CompletedTask;
+    }
+
+    private sealed class MetricsHandler : IMetricsHandler
+    {
+        public ValueTask AddedAsync(string identifier, int count, CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+
+        public ValueTask CanceledAsync(string identifier, int count, CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+
+        public ValueTask HandledAsync(string identifier, int count, TimeSpan elapsed, CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+
+        public ValueTask RetriedAsync(string identifier, int count, CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+
+        public ValueTask DeletedAsync(string identifier, int count, CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+
+        public ValueTask CleanedInAsync(string identifier, TimeSpan elapsed, CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+
+        public ValueTask ReadedInAsync(string identifier, TimeSpan elapsed, CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
     }
 
     private sealed class TestOutboxProvider : IOutboxProvider
