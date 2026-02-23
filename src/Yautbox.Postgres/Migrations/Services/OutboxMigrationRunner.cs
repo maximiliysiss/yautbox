@@ -2,13 +2,17 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentMigrator.Runner;
+using FluentMigrator.Runner.Initialization;
 using FluentMigrator.Runner.Processors;
+using FluentMigrator.Runner.VersionTableInfo;
 using Medallion.Threading.Postgres;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using Yautbox.Postgres.Infrastructure.Database;
+using Yautbox.Postgres.Migrations.Configuration;
+using Yautbox.Postgres.Migrations.Infrastructure;
 using Yautbox.Postgres.Migrations.Options;
 
 namespace Yautbox.Postgres.Migrations.Services;
@@ -45,10 +49,11 @@ internal sealed class OutboxMigrationRunner : IOutboxMigrationRunner
         var assembly = typeof(InitialMigration).Assembly;
 
         await using var serviceProvider = new ServiceCollection()
+            .AddScoped<IVersionTableMetaData, VersionTableMetaData>()
+            .AddScoped<IVersionTableMetaDataAccessor, VersionTableMetaDataAccessor>()
+            .AddSingleton<IMigrationSourceItem, MigrationSourceItem>()
             .AddFluentMigratorCore()
-            .ConfigureRunner(builder => builder
-                .AddPostgres()
-                .ScanIn(assembly).For.All())
+            .ConfigureRunner(builder => builder.AddPostgres())
             .AddOptions<ProcessorOptions>()
             .Configure(options =>
             {

@@ -4,7 +4,7 @@ using Yautbox.Postgres.Migrations.Options;
 
 namespace Yautbox.Postgres.Migrations.Configuration;
 
-public sealed class VersionTableMetaData(IOptions<MigrationOptions> options) : IVersionTableMetaData
+internal sealed class VersionTableMetaData(IOptions<MigrationOptions> options) : IVersionTableMetaData
 {
     private readonly MigrationOptions _options = options.Value;
 

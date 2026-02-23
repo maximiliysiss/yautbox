@@ -5,7 +5,7 @@ using FluentMigrator.Infrastructure;
 
 namespace Yautbox.Postgres.Migrations.Shared;
 
-public abstract class SqlMigration : IMigration
+internal abstract class SqlMigration : IMigration
 {
     public void GetUpExpressions(IMigrationContext context)
     {

@@ -7,7 +7,7 @@ using Yautbox.Mssql.Migrations.Shared;
 namespace Yautbox.Mssql.Migrations;
 
 [Migration(1, "InitialMigration")]
-public sealed class InitialMigration : SqlMigration
+internal sealed class InitialMigration : SqlMigration
 {
     private readonly MigrationOptions _options;
 

@@ -4,7 +4,7 @@ using NpgsqlTypes;
 // ReSharper disable once CheckNamespace
 namespace Npgsql;
 
-public static class NpgsqlParameterCollectionExtensions
+internal static class NpgsqlParameterCollectionExtensions
 {
     public static void Add<T>(this DbParameterCollection parameters, string name, T value) =>
         parameters.Add(

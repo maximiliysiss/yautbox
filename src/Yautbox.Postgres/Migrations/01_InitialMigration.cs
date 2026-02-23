@@ -7,7 +7,7 @@ using Yautbox.Postgres.Migrations.Shared;
 namespace Yautbox.Postgres.Migrations;
 
 [Migration(1, "InitialMigration")]
-public sealed class InitialMigration : SqlMigration
+internal sealed class InitialMigration : SqlMigration
 {
     private readonly MigrationOptions _options;
 

@@ -2,7 +2,7 @@
 
 namespace System.Data.Common;
 
-public readonly ref struct DbCommandInitializer
+internal readonly ref struct DbCommandInitializer
 {
     private DbCommand Command { get; }
 
