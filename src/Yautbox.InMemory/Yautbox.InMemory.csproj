@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <PackageReference Include="DequeNet"/>
+    <PackageReference Include="Microsoft.NETCore.Jit" />
   </ItemGroup>
 
 </Project>
