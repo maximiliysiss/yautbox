@@ -4,7 +4,6 @@
     <Title>Yautbox.Mysql</Title>
     <PackageTags>outbox yautbox mysql</PackageTags>
     <Description>MySQL provider for Yautbox with schema migrations and distributed locks for sequential execution.</Description>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/maximiliysiss/yautbox/tree/master/src/Yautbox.Mysql</PackageProjectUrl>
     <RepositoryUrl>https://github.com/maximiliysiss/yautbox/tree/master/src/Yautbox.Mysql</RepositoryUrl>
     <PackageId>Yautbox.Mysql</PackageId>

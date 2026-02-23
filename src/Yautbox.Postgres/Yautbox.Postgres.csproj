@@ -4,7 +4,6 @@
     <Title>Yautbox.Postgres</Title>
     <PackageTags>outbox yautbox postgres postgresql</PackageTags>
     <Description>PostgreSQL provider for Yautbox with schema migrations and advisory locks for sequential execution.</Description>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/maximiliysiss/yautbox/tree/master/src/Yautbox.Postgres</PackageProjectUrl>
     <RepositoryUrl>https://github.com/maximiliysiss/yautbox/tree/master/src/Yautbox.Postgres</RepositoryUrl>
     <PackageId>Yautbox.Postgres</PackageId>
