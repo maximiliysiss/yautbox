@@ -47,7 +47,7 @@ public class OutboxRepositoryTests : IAsyncLifetime
     public async Task AddAsync_ShouldAddNewRecord(TestEvent @event)
     {
         // Arrange
-        var identifier = $"{nameof(AddAsync_ShouldAddNewRecord)}_{RuntimeInformation.FrameworkDescription}";
+        var identifier = $"{nameof(AddAsync_ShouldAddNewRecord)}_{RuntimeInformation.FrameworkDescription}_{Guid.NewGuid()}";
 
         var repository = Create();
 
@@ -93,7 +93,7 @@ public class OutboxRepositoryTests : IAsyncLifetime
     public async Task DeleteAsync_ShouldUpdateExistsRecord_WhenPolicyIsSafe()
     {
         // Arrange
-        var identifier = $"{nameof(DeleteAsync_ShouldUpdateExistsRecord_WhenPolicyIsSafe)}_{RuntimeInformation.FrameworkDescription}";
+        var identifier = $"{nameof(DeleteAsync_ShouldUpdateExistsRecord_WhenPolicyIsSafe)}_{RuntimeInformation.FrameworkDescription}_{Guid.NewGuid()}";
 
         var tableRow = OutboxDbHelper.TableRow.GetDefault(identifier);
 
@@ -128,7 +128,7 @@ public class OutboxRepositoryTests : IAsyncLifetime
     public async Task DeleteAsync_ShouldDeleteExistsRecord_WhenPolicyIsDelete()
     {
         // Arrange
-        var identifier = $"{nameof(DeleteAsync_ShouldDeleteExistsRecord_WhenPolicyIsDelete)}_{RuntimeInformation.FrameworkDescription}";
+        var identifier = $"{nameof(DeleteAsync_ShouldDeleteExistsRecord_WhenPolicyIsDelete)}_{RuntimeInformation.FrameworkDescription}_{Guid.NewGuid()}";
 
         var tableRow = OutboxDbHelper.TableRow.GetDefault(identifier);
 
@@ -154,7 +154,7 @@ public class OutboxRepositoryTests : IAsyncLifetime
     public async Task GetAsync_ShouldReturnEmpty_WhenThereIsNoRecord()
     {
         // Arrange
-        var identifier = $"{nameof(GetAsync_ShouldReturnEmpty_WhenThereIsNoRecord)}_{RuntimeInformation.FrameworkDescription}";
+        var identifier = $"{nameof(GetAsync_ShouldReturnEmpty_WhenThereIsNoRecord)}_{RuntimeInformation.FrameworkDescription}_{Guid.NewGuid()}";
 
         var repository = Create();
 
@@ -175,7 +175,7 @@ public class OutboxRepositoryTests : IAsyncLifetime
     public async Task GetAsync_ShouldReturnRecord(TestEvent @event)
     {
         // Arrange
-        var identifier = $"{nameof(GetAsync_ShouldReturnRecord)}_{RuntimeInformation.FrameworkDescription}";
+        var identifier = $"{nameof(GetAsync_ShouldReturnRecord)}_{RuntimeInformation.FrameworkDescription}_{Guid.NewGuid()}";
 
         var tableRow = OutboxDbHelper.TableRow.GetDefault(identifier, JsonSerializer.Serialize(@event));
 
@@ -208,7 +208,7 @@ public class OutboxRepositoryTests : IAsyncLifetime
     public async Task GetAsync_ShouldReturn_WhenGetItByPages()
     {
         // Arrange
-        var identifier = $"{nameof(GetAsync_ShouldReturn_WhenGetItByPages)}_{RuntimeInformation.FrameworkDescription}";
+        var identifier = $"{nameof(GetAsync_ShouldReturn_WhenGetItByPages)}_{RuntimeInformation.FrameworkDescription}_{Guid.NewGuid()}";
 
         var testEvents = Enumerable.Range(1, 10)
             .Select(i => new TestEvent(i, $"Name {i}"))
@@ -281,7 +281,7 @@ public class OutboxRepositoryTests : IAsyncLifetime
     public async Task GetAsync_ShouldReturn_WhenGetItByPagesInParallel()
     {
         // Arrange
-        var identifier = $"{nameof(GetAsync_ShouldReturn_WhenGetItByPagesInParallel)}_{RuntimeInformation.FrameworkDescription}";
+        var identifier = $"{nameof(GetAsync_ShouldReturn_WhenGetItByPagesInParallel)}_{RuntimeInformation.FrameworkDescription}_{Guid.NewGuid()}";
 
         var testEvents = Enumerable.Range(1, 42)
             .Select(i => new TestEvent(i, $"Name {i}"))
@@ -351,7 +351,7 @@ public class OutboxRepositoryTests : IAsyncLifetime
     public async Task GetAsync_ShouldReturnEmpty_WhenRecordIsInFuture(TestEvent @event)
     {
         // Arrange
-        var identifier = $"{nameof(GetAsync_ShouldReturnEmpty_WhenRecordIsInFuture)}_{RuntimeInformation.FrameworkDescription}";
+        var identifier = $"{nameof(GetAsync_ShouldReturnEmpty_WhenRecordIsInFuture)}_{RuntimeInformation.FrameworkDescription}_{Guid.NewGuid()}";
 
         var tableRow = OutboxDbHelper.TableRow
             .GetFaker(identifier, JsonSerializer.Serialize(@event))
@@ -379,7 +379,7 @@ public class OutboxRepositoryTests : IAsyncLifetime
     public async Task UpdateAsync_ShouldUpdateRecord(TestEvent @event)
     {
         // Arrange
-        var identifier = $"{nameof(UpdateAsync_ShouldUpdateRecord)}_{RuntimeInformation.FrameworkDescription}";
+        var identifier = $"{nameof(UpdateAsync_ShouldUpdateRecord)}_{RuntimeInformation.FrameworkDescription}_{Guid.NewGuid()}";
 
         var tableRow = OutboxDbHelper.TableRow
             .GetFaker(identifier, JsonSerializer.Serialize(@event))
@@ -421,7 +421,7 @@ public class OutboxRepositoryTests : IAsyncLifetime
     public async Task CleanData_ShouldCleanData(TestEvent @event)
     {
         // Arrange
-        var identifier = $"{nameof(CleanData_ShouldCleanData)}_{RuntimeInformation.FrameworkDescription}";
+        var identifier = $"{nameof(CleanData_ShouldCleanData)}_{RuntimeInformation.FrameworkDescription}_{Guid.NewGuid()}";
 
         var faker = OutboxDbHelper.TableRow
             .GetFaker(identifier, JsonSerializer.Serialize(@event))
