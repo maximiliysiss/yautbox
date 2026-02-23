@@ -12,3 +12,10 @@ services:
     environment:
       SA_PASSWORD: Pwd12345!
       ACCEPT_EULA: Y
+  mysql:
+    image: mysql:8.0.29
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: pwd
+      MYSQL_DATABASE: outbox

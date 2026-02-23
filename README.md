@@ -150,3 +150,4 @@ services.AddOutbox(builder =>
 | InMemory | `Yautbox.InMemory` | [README](src/Yautbox.InMemory/README.md) |
 | MSSQL    | `Yautbox.Mssql`    | [README](src/Yautbox.Mssql/README.md)    |
 | Postgres | `Yautbox.Postgres` | [README](src/Yautbox.Postgres/README.md) |
+| Mysql    | `Yautbox.Mysql`    | [README](src/Yautbox.Mysql/README.md)    |

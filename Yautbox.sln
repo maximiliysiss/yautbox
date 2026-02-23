@@ -11,6 +11,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "common", "common", "{4D8684
 		README.md = README.md
 		docker-compose.yaml = docker-compose.yaml
 		.github\workflows\dotnet.yml = .github\workflows\dotnet.yml
+		LICENSE = LICENSE
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{9E642318-8B31-4255-81FB-803949BD0C2F}"
@@ -45,6 +46,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yautbox.Mssql.UnitTests", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yautbox.Mssql.IntegrationTests", "tests\Yautbox.Mssql.IntegrationTests\Yautbox.Mssql.IntegrationTests.csproj", "{0D5C5EBB-C1AE-47E3-9FB8-35C632D009DE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yautbox.Mysql", "src\Yautbox.Mysql\Yautbox.Mysql.csproj", "{D83E84DE-50C4-4192-A0DE-3E8D3085C073}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yautbox.Mysql.UnitTests", "tests\Yautbox.Mysql.UnitTests\Yautbox.Mysql.UnitTests.csproj", "{041FBAB6-27A1-49F7-8AB8-D15751C2DDCF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yautbox.Mysql.IntegrationTests", "tests\Yautbox.Mysql.IntegrationTests\Yautbox.Mysql.IntegrationTests.csproj", "{2665AD26-63DC-414C-95F9-7F78CFB36976}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -65,6 +72,9 @@ Global
 		{179F5510-CADB-47B0-956E-B9D63912F78B} = {30B5EA61-1992-47C8-B418-20D56EEB58A9}
 		{30CA86F2-FC17-4363-913A-978BD7282269} = {30B5EA61-1992-47C8-B418-20D56EEB58A9}
 		{0D5C5EBB-C1AE-47E3-9FB8-35C632D009DE} = {30B5EA61-1992-47C8-B418-20D56EEB58A9}
+		{D83E84DE-50C4-4192-A0DE-3E8D3085C073} = {9E642318-8B31-4255-81FB-803949BD0C2F}
+		{041FBAB6-27A1-49F7-8AB8-D15751C2DDCF} = {30B5EA61-1992-47C8-B418-20D56EEB58A9}
+		{2665AD26-63DC-414C-95F9-7F78CFB36976} = {30B5EA61-1992-47C8-B418-20D56EEB58A9}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{7AE9734E-1E46-4D25-82DA-DA6A8D6B7BFD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -111,5 +121,17 @@ Global
 		{0D5C5EBB-C1AE-47E3-9FB8-35C632D009DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0D5C5EBB-C1AE-47E3-9FB8-35C632D009DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0D5C5EBB-C1AE-47E3-9FB8-35C632D009DE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D83E84DE-50C4-4192-A0DE-3E8D3085C073}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D83E84DE-50C4-4192-A0DE-3E8D3085C073}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D83E84DE-50C4-4192-A0DE-3E8D3085C073}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D83E84DE-50C4-4192-A0DE-3E8D3085C073}.Release|Any CPU.Build.0 = Release|Any CPU
+		{041FBAB6-27A1-49F7-8AB8-D15751C2DDCF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{041FBAB6-27A1-49F7-8AB8-D15751C2DDCF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{041FBAB6-27A1-49F7-8AB8-D15751C2DDCF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{041FBAB6-27A1-49F7-8AB8-D15751C2DDCF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2665AD26-63DC-414C-95F9-7F78CFB36976}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2665AD26-63DC-414C-95F9-7F78CFB36976}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2665AD26-63DC-414C-95F9-7F78CFB36976}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2665AD26-63DC-414C-95F9-7F78CFB36976}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

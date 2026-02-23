@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Title>Yautbox.Mysql</Title>
+    <PackageTags>outbox yautbox mysql</PackageTags>
+    <Description>MySQL provider for Yautbox with schema migrations and distributed locks for sequential execution.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/maximiliysiss/yautbox/tree/master/src/Yautbox.Mysql</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/maximiliysiss/yautbox/tree/master/src/Yautbox.Mysql</RepositoryUrl>
+    <PackageId>Yautbox.Mysql</PackageId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Yautbox\Yautbox.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DistributedLock.MySql" />
+    <PackageReference Include="FluentMigrator.Runner"/>
+    <PackageReference Include="MySqlConnector"/>
+  </ItemGroup>
+
+</Project>
