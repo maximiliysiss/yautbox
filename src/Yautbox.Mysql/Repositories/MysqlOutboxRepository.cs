@@ -65,7 +65,7 @@ JOIN (
 SET t.locker = @locker,
     t.locked_by = @lockedBy;
 
-SELECT id, payload, attempt, scheduled_at, created_at
+SELECT id, payload, attempt, scheduled_at AS scheduledAt, created_at AS createdAt
 FROM outbox_messages
 WHERE locked_by = @lockedBy;
 
