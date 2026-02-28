@@ -8,6 +8,7 @@ using Polly.Retry;
 using Yautbox.Extensions.DateTime;
 using Yautbox.Extensions.Logger;
 using Yautbox.Infrastructure.Sleep;
+using Yautbox.Runner.Extensions;
 
 namespace Yautbox.Infrastructure.Hosted;
 
@@ -26,7 +27,7 @@ internal abstract class RestartableService : BackgroundService
         var delayProvider = sleepDurationProvider ?? DefaultSleepDurationProvider.Instance;
 
         _retryPolicy = Policy
-            .Handle<Exception>(e => e is not OperationCanceledException)
+            .Handle<Exception>(e => !e.IsCancel())
             .WaitAndRetryForeverAsync(
                 delayProvider.GetSleepDelay,
                 (e, retryNumber, _) => _logger.RestartingService(ServiceName, retryNumber, e));
@@ -47,10 +48,13 @@ internal abstract class RestartableService : BackgroundService
                 _logger.StartingService(ServiceName);
                 await ExecuteAsync(reloadTokenSource);
             }
-            catch (OperationCanceledException)
+            catch (Exception ex) when (ex.IsCancel())
             {
                 if (stoppingToken.IsCancellationRequested)
+                {
+                    _logger.StoppingService(ServiceName);
                     throw;
+                }
 
                 if (reloadTokenSource.IsCancellationRequested)
                     _logger.ConfigurationChanged(ServiceName);
@@ -61,6 +65,8 @@ internal abstract class RestartableService : BackgroundService
                 throw;
             }
         }
+
+        _logger.StoppingService(ServiceName);
     }
 
     private sealed class DefaultSleepDurationProvider : ISleepDurationProvider

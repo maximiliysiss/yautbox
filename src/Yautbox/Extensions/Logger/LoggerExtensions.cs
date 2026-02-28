@@ -37,4 +37,7 @@ internal static partial class LoggerExtensions
 
     [LoggerMessage(11, LogLevel.Error, "Invalid outbox options for service {serviceName}: {errorMessage}")]
     public static partial void InvalidOutboxOptions(this ILogger logger, string serviceName, string errorMessage);
+
+    [LoggerMessage(12, LogLevel.Information, "Stopping service {serviceName}.")]
+    public static partial void StoppingService(this ILogger logger, string serviceName);
 }

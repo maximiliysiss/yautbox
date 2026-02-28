@@ -15,6 +15,7 @@ using Yautbox.Infrastructure.Waiter;
 using Yautbox.Metrics;
 using Yautbox.Provider;
 using Yautbox.Registy;
+using Yautbox.Runner.Extensions;
 using Yautbox.Runner.Options;
 
 namespace Yautbox.Runner;
@@ -45,7 +46,7 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
         _dateTimeProvider = dateTimeProvider;
         _metricsHandler = metricsHandler;
 
-        ServiceName = $"{base.ServiceName}[{typeof(TPayload).Name},{typeof(THandler).Name}]";
+        ServiceName = $"{base.ServiceName}[{typeof(TPayload).FullName},{typeof(THandler).FullName}]";
     }
 
     protected override string ServiceName { get; }
@@ -104,7 +105,7 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
 
                 await Task.Delay(options.BackupInterval.Value, cancellationToken);
             }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            catch (Exception ex) when (ex.IsCancel() && cancellationToken.IsCancellationRequested)
             {
                 // Graceful shutdown
                 return;
