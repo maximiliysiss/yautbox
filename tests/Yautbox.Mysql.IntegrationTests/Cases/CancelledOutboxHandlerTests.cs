@@ -11,6 +11,8 @@ using Yautbox.Mysql.IntegrationTests.Shared.Extensions;
 using Yautbox.Mysql.IntegrationTests.Shared.Fixture;
 using Yautbox.Services;
 using Microsoft.Extensions.Logging;
+using Polly;
+
 namespace Yautbox.Mysql.IntegrationTests.Cases;
 
 [Collection(nameof(IntegrationTestCollection))]
@@ -24,7 +26,8 @@ public class CancelledOutboxHandlerTests(IntegrationTestFixture fixture)
         using var scope = fixture.Services.CreateScope();
 
         var service = scope.ServiceProvider.GetRequiredService<IOutboxService>();
-        var scheduledAt = DateTimeOffset.UtcNow.AddMilliseconds(300);
+        // Keep scheduled time well in the future to avoid racing the runner.
+        var scheduledAt = DateTimeOffset.UtcNow.AddSeconds(5);
         var message = new Message(11);
 
         // Act
