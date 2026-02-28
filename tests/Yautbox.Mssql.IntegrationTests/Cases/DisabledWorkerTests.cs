@@ -75,9 +75,9 @@ public class DisabledWorkerTests : IAsyncLifetime
         public string? Identifier => null;
         public TimeSpan PollDelay => TimeSpan.FromSeconds(1);
         public int BufferSize => 100;
-        public TimeSpan HandleTimeout => TimeSpan.FromSeconds(10);
+        public TimeSpan HandleTimeout => TimeSpan.FromMinutes(10);
         public bool IsEnabled => false;
-        public TimeSpan Visibility => TimeSpan.FromSeconds(5);
+        public TimeSpan Visibility => TimeSpan.FromMinutes(10);
         public TimeSpan? BackupInterval => null;
         public ExecutionPolicy ExecutionPolicy => ExecutionPolicy.Parallel;
         public DeletePolicy CancellationPolicy => DeletePolicy.Safe;

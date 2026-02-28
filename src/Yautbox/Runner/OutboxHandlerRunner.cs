@@ -153,25 +153,25 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
         IOutboxRunnerOptions options,
         CancellationToken cancellationToken)
     {
-        using var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        cancellationTokenSource.CancelAfter(options.HandleTimeout);
-
-        var cycleCancellationToken = cancellationTokenSource.Token;
-
         var startTimestamp = Stopwatch.GetTimestamp();
 
         var outboxMessages = await provider.GetAsync<TPayload>(
             identifier: identifier,
             count: options.BufferSize,
             visibility: options.Visibility,
-            cancellationToken: cycleCancellationToken);
+            cancellationToken: cancellationToken);
 
         var elapsed = Stopwatch.GetElapsedTime(startTimestamp);
 
-        await _metricsHandler.ReadedInAsync(identifier, elapsed, cycleCancellationToken);
+        await _metricsHandler.ReadedInAsync(identifier, elapsed, cancellationToken);
 
         if (outboxMessages.Count is 0)
             return false;
+
+        using var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cancellationTokenSource.CancelAfter(options.HandleTimeout);
+
+        var cycleCancellationToken = cancellationTokenSource.Token;
 
         var loopTasks = outboxMessages
             .Chunk(options.PerBufferCount)
@@ -194,16 +194,16 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
         await provider.RetryAsync(
             identifier: identifier,
             messages: toRetryMessages,
-            cancellationToken: cycleCancellationToken);
+            cancellationToken: cancellationToken);
 
         await provider.DeleteAsync(
             identifier: identifier,
             ids: toDeleteMessages,
             policy: options.DeletePolicy,
-            cancellationToken: cycleCancellationToken);
+            cancellationToken: cancellationToken);
 
-        await _metricsHandler.RetriedAsync(identifier, toRetryMessages.Length, cycleCancellationToken);
-        await _metricsHandler.DeletedAsync(identifier, toDeleteMessages.Length, cycleCancellationToken);
+        await _metricsHandler.RetriedAsync(identifier, toRetryMessages.Length, cancellationToken);
+        await _metricsHandler.DeletedAsync(identifier, toDeleteMessages.Length, cancellationToken);
 
         return contexts.Any(c => c.IsSuccess);
 

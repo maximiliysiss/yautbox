@@ -80,7 +80,7 @@ public class ParallelWorkersTests
         public string? Identifier => null;
         public TimeSpan PollDelay => TimeSpan.FromSeconds(5);
         public int BufferSize => 3;
-        public TimeSpan HandleTimeout => TimeSpan.FromMinutes(30);
+        public TimeSpan HandleTimeout => TimeSpan.FromMinutes(10);
         public bool IsEnabled => true;
         public int WorkersCount => 5;
     }
