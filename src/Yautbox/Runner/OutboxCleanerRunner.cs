@@ -44,7 +44,11 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
         _readinessWaiter = readinessWaiter;
         _dateTimeProvider = dateTimeProvider;
         _metricsHandler = metricsHandler;
+
+        ServiceName = $"{base.ServiceName}[{typeof(TPayload).Name},{typeof(THandler).Name}]";
     }
+
+    protected override string ServiceName { get; }
 
     protected override async Task ExecuteAsync(CancellationTokenSource reloadTokenSource)
     {
@@ -107,7 +111,9 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
             }
             catch (Exception ex)
             {
-                _logger.ErrorOutboxBackgroundService(typeof(TPayload).Name, ex);
+                var type = typeof(TPayload);
+
+                _logger.ErrorOutboxBackgroundService(type.FullName ?? type.Name, ex);
 
                 // Prevent tight loop on errors
                 await Task.Delay(options.FailureDelay.Jitter(), cancellationToken);

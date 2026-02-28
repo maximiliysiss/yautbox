@@ -49,9 +49,11 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
         _dateTimeProvider = dateTimeProvider;
         _metricsHandler = metricsHandler;
         _options = options;
+
+        ServiceName = $"{base.ServiceName}[{typeof(TPayload).Name},{typeof(THandler).Name}]";
     }
 
-    protected override string ServiceName => $"{base.ServiceName}[{typeof(TPayload).Name},{typeof(THandler).Name}]";
+    protected override string ServiceName { get; }
 
     protected override async Task ExecuteAsync(CancellationTokenSource reloadTokenSource)
     {
@@ -120,7 +122,9 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
                 }
                 catch (Exception ex)
                 {
-                    _logger.ErrorOutboxBackgroundService(typeof(TPayload).Name, ex);
+                    var type = typeof(TPayload);
+
+                    _logger.ErrorOutboxBackgroundService(type.FullName ?? type.Name, ex);
 
                     // Prevent tight loop on errors
                     await Task.Delay(options.FailureDelay.Jitter(), stoppingToken);
@@ -226,7 +230,10 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
             }
             catch (Exception ex)
             {
-                _logger.ErrorProcessingMessages(typeof(TPayload).Name, ex);
+                var type = typeof(TPayload);
+
+                _logger.ErrorProcessingMessages(type.FullName ?? type.Name, ex);
+
                 context.Fail(options.FailureDelay);
             }
 
