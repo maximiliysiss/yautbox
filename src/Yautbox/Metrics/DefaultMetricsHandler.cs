@@ -15,5 +15,6 @@ internal sealed class DefaultMetricsHandler : IMetricsHandler
     public ValueTask RetriedAsync(string identifier, int count, CancellationToken cancellationToken) => ValueTask.CompletedTask;
     public ValueTask DeletedAsync(string identifier, int count, CancellationToken cancellationToken) => ValueTask.CompletedTask;
     public ValueTask CleanedInAsync(string identifier, TimeSpan elapsed, CancellationToken cancellationToken) => ValueTask.CompletedTask;
-    public ValueTask ReadedInAsync(string identifier, TimeSpan elapsed, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+    public ValueTask ReadInAsync(string identifier, TimeSpan elapsed, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+    public ValueTask ErrorsAsync(string identifier, int count, CancellationToken cancellationToken) => ValueTask.CompletedTask;
 }

@@ -14,6 +14,8 @@ internal sealed class OutboxRunnerContext<T>(IDateTimeProvider dateTimeProvider,
     private readonly HashSet<OutboxMessageId> _success = outboxMessages.Select(c => c.Id).ToHashSet();
     public IEnumerable<OutboxMessageId> Success => _success;
 
+    public bool IsFailed { get; private set; }
+
     public bool IsSuccess => _success.Count > 0;
 
     public void AddRetry(Handlers.OutboxMessage<T> message, DateTimeOffset? at = null)
@@ -33,6 +35,8 @@ internal sealed class OutboxRunnerContext<T>(IDateTimeProvider dateTimeProvider,
 
     public void Fail(TimeSpan delay)
     {
+        IsFailed = true;
+
         var scheduledAt = dateTimeProvider.GetNow().Add(delay);
 
         var retries = _success
