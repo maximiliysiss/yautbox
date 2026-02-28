@@ -64,5 +64,14 @@ public interface IMetricsHandler
     /// <param name="identifier">Outbox handler identifier.</param>
     /// <param name="elapsed">Elapsed read time.</param>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
-    ValueTask ReadedInAsync(string identifier, TimeSpan elapsed, CancellationToken cancellationToken);
+    ValueTask ReadInAsync(string identifier, TimeSpan elapsed, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Reports the number of errors that occurred during handling.
+    /// </summary>
+    /// <param name="identifier">Outbox handler identifier.</param>
+    /// <param name="count">Number of errors.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns></returns>
+    ValueTask ErrorsAsync(string identifier, int count, CancellationToken cancellationToken);
 }

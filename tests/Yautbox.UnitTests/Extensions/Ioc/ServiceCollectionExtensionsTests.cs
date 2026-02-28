@@ -155,7 +155,10 @@ public class ServiceCollectionExtensionsTests
         public ValueTask CleanedInAsync(string identifier, TimeSpan elapsed, CancellationToken cancellationToken) =>
             throw new NotImplementedException();
 
-        public ValueTask ReadedInAsync(string identifier, TimeSpan elapsed, CancellationToken cancellationToken) =>
+        public ValueTask ReadInAsync(string identifier, TimeSpan elapsed, CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+
+        public ValueTask ErrorsAsync(string identifier, int count, CancellationToken cancellationToken) =>
             throw new NotImplementedException();
     }
 

@@ -163,7 +163,7 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
 
         var elapsed = Stopwatch.GetElapsedTime(startTimestamp);
 
-        await _metricsHandler.ReadedInAsync(identifier, elapsed, cancellationToken);
+        await _metricsHandler.ReadInAsync(identifier, elapsed, cancellationToken);
 
         if (outboxMessages.Count is 0)
             return false;
@@ -184,6 +184,10 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
             return false;
 
         var contexts = await Task.WhenAll(loopTasks);
+
+        var failedCount = contexts.Count(c => c.IsFailed);
+        if (failedCount is not 0)
+            await _metricsHandler.ErrorsAsync(identifier, failedCount, cancellationToken);
 
         var toRetryMessages = contexts
             .SelectMany(c => c.Retries.Select(MapRetry))
