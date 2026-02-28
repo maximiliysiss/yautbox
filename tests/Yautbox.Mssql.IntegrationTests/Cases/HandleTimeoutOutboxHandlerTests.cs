@@ -32,7 +32,7 @@ public class HandleTimeoutOutboxHandlerTests(IntegrationTestFixture fixture)
         var successAttempt = await WaitForSuccessAttemptAsync(TimeSpan.FromSeconds(3));
 
         // Assert
-        successAttempt.Should().Be(1);
+        successAttempt.Should().Be(2);
         Handler.CallCount.Should().BeGreaterThanOrEqualTo(2);
     }
 
