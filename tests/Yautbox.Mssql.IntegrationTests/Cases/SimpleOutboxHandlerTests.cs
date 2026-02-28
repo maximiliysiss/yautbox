@@ -10,7 +10,7 @@ using Yautbox.Handlers;
 using Yautbox.Mssql.IntegrationTests.Shared.Extensions;
 using Yautbox.Mssql.IntegrationTests.Shared.Fixture;
 using Yautbox.Services;
-
+using Microsoft.Extensions.Logging;
 namespace Yautbox.Mssql.IntegrationTests.Cases;
 
 [Collection(nameof(IntegrationTestCollection))]
@@ -42,11 +42,18 @@ public class SimpleOutboxHandlerTests(IntegrationTestFixture fixture)
 
     public sealed class Handler : IOutboxHandler<Message>
     {
+        private readonly ILogger<Handler> _logger;
+        public Handler(ILogger<Handler> logger)
+        {
+            _logger = logger;
+        }
+
         private static int _index;
         public static int Index => _index;
 
         public Task HandleAsync(IEnumerable<OutboxMessage<Message>> messages, CancellationToken cancellationToken)
         {
+            _logger.LogInformation("Handling messages.");
             foreach (var message in messages)
                 Volatile.Write(ref _index, message.Payload.Value);
 

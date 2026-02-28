@@ -44,8 +44,13 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
     {
         cancellationToken.ThrowIfCancellationRequested();
 
+        _logger.FetchingOutboxMessages(identifier, count, visibility);
+
         if (!_inMemoryQueue.TryGetValue(identifier, out var inMemoryQueue))
+        {
+            _logger.FetchedOutboxMessages(identifier, 0);
             return Task.FromResult<IReadOnlyCollection<OutboxMessage<T>>>([]);
+        }
 
         var batch = new List<OutboxMessage<T>>(count);
 
@@ -71,6 +76,8 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
         _ = Task.Run(
             function: () => RescheduleAsync(rescheduledMessages),
             cancellationToken: CancellationToken.None);
+
+        _logger.FetchedOutboxMessages(identifier, batch.Count);
 
         return Task.FromResult<IReadOnlyCollection<OutboxMessage<T>>>(batch);
 
@@ -102,6 +109,8 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
 
         if (messages.Count is 0)
             return Task.FromResult<IReadOnlyCollection<OutboxMessageId>>([]);
+
+        _logger.AddingOutboxMessages(identifier, messages.Count);
 
         var inMemoryQueue = _inMemoryQueue.GetOrAdd(
             key: identifier,
@@ -136,6 +145,8 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
 
             transaction.TransactionCompleted += handler;
         }
+
+        _logger.AddedOutboxMessages(identifier, localIds.Count);
 
         return Task.FromResult<IReadOnlyCollection<OutboxMessageId>>(localIds);
 
@@ -197,6 +208,8 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
     {
         cancellationToken.ThrowIfCancellationRequested();
 
+        _logger.DeletingOutboxMessages(identifier, ids.Count, policy);
+
         foreach (var id in ids)
             _enqueuedQueue.TryRemove(id, out _);
 
@@ -206,6 +219,7 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
     public Task CleanAsync(string identifier, DateTimeOffset olderThan, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        _logger.CleaningOutboxMessages(identifier, olderThan);
         return Task.CompletedTask;
     }
 
@@ -215,6 +229,8 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        _logger.RetryingOutboxMessages(identifier, messages.Count);
 
         foreach (var (outboxMessageId, _, _, currentAttempt, _) in messages)
             _enqueuedQueue.TryUpdate(key: outboxMessageId, newValue: currentAttempt, comparisonValue: currentAttempt - 1);

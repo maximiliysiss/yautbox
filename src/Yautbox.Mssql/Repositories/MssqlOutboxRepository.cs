@@ -43,6 +43,8 @@ internal sealed class MssqlOutboxRepository : IMssqlOutboxRepository
         TimeSpan locker,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
+        _logger.FetchingOutboxMessages(identifier, count);
+
         var tableName = $"[{_options.SchemaName}].outbox_messages";
 
         var query = $@"
@@ -91,6 +93,8 @@ OUTPUT inserted.id, inserted.payload, inserted.attempt,
             command.Parameters.Add("now", now);
             command.Parameters.Add("locker", now.Add(locker));
 
+            var fetchedCount = 0;
+
             await using (var reader = await command.ExecuteReaderAsync(cancellationToken))
             {
                 while (await reader.ReadAsync(cancellationToken))
@@ -121,10 +125,13 @@ OUTPUT inserted.id, inserted.payload, inserted.attempt,
                         CreatedAt: reader.GetFieldValue<DateTimeOffset>("createdAt"));
 
                     messages.Add(message);
+                    fetchedCount++;
                 }
             }
 
             await transaction.CommitAsync(cancellationToken);
+
+            _logger.FetchedOutboxMessages(identifier, fetchedCount);
         }
 
         foreach (var message in messages)
@@ -138,6 +145,8 @@ OUTPUT inserted.id, inserted.payload, inserted.attempt,
     {
         if (messages.Count is 0)
             yield break;
+
+        _logger.AddingOutboxMessages(identifier, messages.Count);
 
         var tableName = $"[{_options.SchemaName}].outbox_messages";
         var typeName = $"{_options.SchemaName}.outbox_message_table_type";
@@ -160,8 +169,15 @@ FROM @messages;
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
+        var addedCount = 0;
+
         while (await reader.ReadAsync(cancellationToken))
+        {
             yield return new OutboxMessageId(reader.GetInt64("id"));
+            addedCount++;
+        }
+
+        _logger.AddedOutboxMessages(identifier, addedCount);
     }
 
     public async Task DeleteAsync(
@@ -171,6 +187,8 @@ FROM @messages;
     {
         if (ids.Count is 0)
             return;
+
+        _logger.DeletingOutboxMessages(ids.Count, policy);
 
         var tableName = $"[{_options.SchemaName}].outbox_messages";
         var typeName = $"{_options.SchemaName}.outbox_id_table_type";
@@ -202,13 +220,17 @@ WHERE id IN (SELECT id FROM @ids) AND is_deleted = 0;
 
         await connection.OpenAsync(cancellationToken);
 
-        await command.ExecuteNonQueryAsync(cancellationToken);
+        var rowsAffected = await command.ExecuteNonQueryAsync(cancellationToken);
+
+        _logger.DeletedOutboxMessages(ids.Count, rowsAffected, policy);
     }
 
     public async Task UpdateAsync<T>(IReadOnlyCollection<OutboxMessage<T>> messages, CancellationToken cancellationToken)
     {
         if (messages.Count is 0)
             return;
+
+        _logger.UpdatingOutboxMessages(messages.Count);
 
         var tableName = $"[{_options.SchemaName}].outbox_messages";
         var typeName = $"{_options.SchemaName}.outbox_update_table_type";
@@ -231,11 +253,15 @@ WHERE om.is_deleted = 0;
 
         await connection.OpenAsync(cancellationToken);
 
-        await command.ExecuteNonQueryAsync(cancellationToken);
+        var rowsAffected = await command.ExecuteNonQueryAsync(cancellationToken);
+
+        _logger.UpdatedOutboxMessages(messages.Count, rowsAffected);
     }
 
     public async Task CleanAsync(string identifier, DateTimeOffset olderThan, CancellationToken cancellationToken)
     {
+        _logger.CleaningOutboxMessages(identifier, olderThan);
+
         var tableName = $"[{_options.SchemaName}].outbox_messages";
 
         var query = $@"
@@ -259,6 +285,9 @@ WHERE is_deleted = 1
             await connection.OpenAsync(cancellationToken);
 
             var rowsAffected = await command.ExecuteNonQueryAsync(cancellationToken);
+
+            if (rowsAffected > 0)
+                _logger.CleanedOutboxMessages(identifier, rowsAffected);
 
             if (rowsAffected is 0)
                 break;

@@ -10,7 +10,7 @@ using Yautbox.Handlers;
 using Yautbox.Mssql.IntegrationTests.Shared.Extensions;
 using Yautbox.Mssql.IntegrationTests.Shared.Fixture;
 using Yautbox.Services;
-
+using Microsoft.Extensions.Logging;
 namespace Yautbox.Mssql.IntegrationTests.Cases;
 
 [Collection(nameof(IntegrationTestCollection))]
@@ -53,13 +53,23 @@ public class DeletePolicyDeleteOutboxHandlerTests(IntegrationTestFixture fixture
 
     public sealed class Handler : IOutboxHandler<Message>
     {
+        private readonly ILogger<Handler> _logger;
+        public Handler(ILogger<Handler> logger)
+        {
+            _logger = logger;
+        }
+
         private static int _callCount;
         public static int CallCount => Volatile.Read(ref _callCount);
 
-        public static void Reset() => Interlocked.Exchange(ref _callCount, 0);
+        public static void Reset()
+        {
+            Interlocked.Exchange(ref _callCount, 0);
+        }
 
         public Task HandleAsync(IEnumerable<OutboxMessage<Message>> messages, CancellationToken cancellationToken)
         {
+            _logger.LogInformation("Handling messages.");
             foreach (var _ in messages)
                 Interlocked.Increment(ref _callCount);
 

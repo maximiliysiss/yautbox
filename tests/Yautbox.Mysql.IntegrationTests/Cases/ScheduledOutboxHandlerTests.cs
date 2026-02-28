@@ -10,7 +10,7 @@ using Yautbox.Handlers;
 using Yautbox.Mysql.IntegrationTests.Shared.Extensions;
 using Yautbox.Mysql.IntegrationTests.Shared.Fixture;
 using Yautbox.Services;
-
+using Microsoft.Extensions.Logging;
 namespace Yautbox.Mysql.IntegrationTests.Cases;
 
 [Collection(nameof(IntegrationTestCollection))]
@@ -59,6 +59,12 @@ public class ScheduledOutboxHandlerTests(IntegrationTestFixture fixture)
 
     public sealed class Handler : IOutboxHandler<Message>
     {
+        private readonly ILogger<Handler> _logger;
+        public Handler(ILogger<Handler> logger)
+        {
+            _logger = logger;
+        }
+
         private static int _callCount;
         private static long _handledAtUtcTicks;
 
@@ -81,6 +87,7 @@ public class ScheduledOutboxHandlerTests(IntegrationTestFixture fixture)
 
         public Task HandleAsync(IEnumerable<OutboxMessage<Message>> messages, CancellationToken cancellationToken)
         {
+            _logger.LogInformation("Handling messages.");
             foreach (var _ in messages)
                 Interlocked.Increment(ref _callCount);
 

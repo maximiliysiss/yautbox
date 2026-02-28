@@ -15,7 +15,7 @@ using Yautbox.Postgres.IntegrationTests.DbHelper;
 using Yautbox.Postgres.IntegrationTests.Shared.Fixture;
 using Yautbox.Postgres.Options;
 using Yautbox.Services;
-
+using Microsoft.Extensions.Logging;
 namespace Yautbox.Postgres.IntegrationTests.Cases;
 
 [Collection(nameof(IntegrationTestCollection))]
@@ -61,14 +61,24 @@ public class RetryOutboxTests
 
     public sealed class OutboxHandleTestsHandler : IOutboxHandler<RetryOutboxEvent>
     {
+        private readonly ILogger<OutboxHandleTestsHandler> _logger;
+        public OutboxHandleTestsHandler(ILogger<OutboxHandleTestsHandler> logger)
+        {
+            _logger = logger;
+        }
+
         private static readonly DateTimeOffset _nextScheduledAt = DateTimeOffset.UtcNow.AddHours(1);
 
         private static int _counter;
 
         public Task HandleAsync(IEnumerable<OutboxMessage<RetryOutboxEvent>> messages, CancellationToken cancellationToken)
         {
+            _logger.LogInformation("Handling messages.");
             if (_counter > 0)
+            {
+                _logger.LogInformation("Invariant hit: if condition evaluated true.");
                 return Task.CompletedTask;
+            }
 
             _counter++;
 

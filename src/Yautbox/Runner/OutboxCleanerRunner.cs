@@ -15,6 +15,7 @@ using Yautbox.Infrastructure.Waiter;
 using Yautbox.Metrics;
 using Yautbox.Provider;
 using Yautbox.Registy;
+using Yautbox.Runner.Extensions;
 using Yautbox.Runner.Options;
 
 namespace Yautbox.Runner;
@@ -44,7 +45,11 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
         _readinessWaiter = readinessWaiter;
         _dateTimeProvider = dateTimeProvider;
         _metricsHandler = metricsHandler;
+
+        ServiceName = $"{base.ServiceName}[{typeof(TPayload).FullName},{typeof(THandler).FullName}]";
     }
+
+    protected override string ServiceName { get; }
 
     protected override async Task ExecuteAsync(CancellationTokenSource reloadTokenSource)
     {
@@ -90,6 +95,8 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
                 var olderThan = _dateTimeProvider.GetNow() - options.BackupInterval.Value;
                 var identifier = registry.GetIdentifier<TPayload>();
 
+                _logger.OutboxCleanupStarted(identifier, olderThan);
+
                 var startTimestamp = Stopwatch.GetTimestamp();
 
                 await provider.CleanAsync(identifier, olderThan, cancellationToken);
@@ -98,16 +105,20 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
 
                 await _metricsHandler.CleanedInAsync(identifier, elapsed, cancellationToken);
 
+                _logger.OutboxCleanupFinished(identifier, elapsed);
+
                 await Task.Delay(options.BackupInterval.Value, cancellationToken);
             }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            catch (Exception ex) when (ex.IsCancel() && cancellationToken.IsCancellationRequested)
             {
                 // Graceful shutdown
                 return;
             }
             catch (Exception ex)
             {
-                _logger.ErrorOutboxBackgroundService(typeof(TPayload).Name, ex);
+                var type = typeof(TPayload);
+
+                _logger.ErrorOutboxBackgroundService(type.FullName ?? type.Name, ex);
 
                 // Prevent tight loop on errors
                 await Task.Delay(options.FailureDelay.Jitter(), cancellationToken);

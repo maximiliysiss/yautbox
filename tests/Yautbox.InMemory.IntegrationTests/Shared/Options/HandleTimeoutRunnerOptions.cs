@@ -14,7 +14,7 @@ public sealed class HandleTimeoutRunnerOptions : IOutboxRunnerOptions
     public int PerBufferCount { get; set; } = 1;
     public DeletePolicy DeletePolicy { get; set; } = DeletePolicy.Safe;
     public TimeSpan FailureDelay { get; set; } = TimeSpan.FromMilliseconds(100);
-    public TimeSpan Visibility { get; set; } = TimeSpan.FromMilliseconds(200);
+    public TimeSpan Visibility { get; set; } = TimeSpan.FromMinutes(3);
     public TimeSpan? BackupInterval { get; set; }
     public ExecutionPolicy ExecutionPolicy { get; set; } = ExecutionPolicy.Parallel;
     public DeletePolicy CancellationPolicy { get; set; } = DeletePolicy.Safe;

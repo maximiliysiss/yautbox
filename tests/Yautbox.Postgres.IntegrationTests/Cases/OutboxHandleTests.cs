@@ -11,7 +11,7 @@ using Yautbox.Handlers;
 using Yautbox.Postgres.IntegrationTests.Shared.Extensions;
 using Yautbox.Postgres.IntegrationTests.Shared.Fixture;
 using Yautbox.Services;
-
+using Microsoft.Extensions.Logging;
 namespace Yautbox.Postgres.IntegrationTests.Cases;
 
 [Collection(nameof(IntegrationTestCollection))]
@@ -41,11 +41,18 @@ public class OutboxHandleTests(IntegrationTestFixture fixture)
 
     public sealed class OutboxHandleTestsHandler : IOutboxHandler<OutboxHandleTestsEvent>
     {
+        private readonly ILogger<OutboxHandleTestsHandler> _logger;
+        public OutboxHandleTestsHandler(ILogger<OutboxHandleTestsHandler> logger)
+        {
+            _logger = logger;
+        }
+
         private static int _counter;
         public static int Counter => _counter;
 
         public Task HandleAsync(IEnumerable<OutboxMessage<OutboxHandleTestsEvent>> messages, CancellationToken cancellationToken)
         {
+            _logger.LogInformation("Handling messages.");
             Interlocked.Increment(ref _counter);
             return Task.CompletedTask;
         }

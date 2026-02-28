@@ -18,6 +18,7 @@ using Yautbox.Infrastructure.Waiter;
 using Yautbox.Metrics;
 using Yautbox.Provider;
 using Yautbox.Registy;
+using Yautbox.Runner.Extensions;
 using Yautbox.Runner.Infrastructure;
 using Yautbox.Runner.Options;
 
@@ -49,9 +50,11 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
         _dateTimeProvider = dateTimeProvider;
         _metricsHandler = metricsHandler;
         _options = options;
+
+        ServiceName = $"{base.ServiceName}[{typeof(TPayload).FullName},{typeof(THandler).FullName}]";
     }
 
-    protected override string ServiceName => $"{base.ServiceName}[{typeof(TPayload).Name},{typeof(THandler).Name}]";
+    protected override string ServiceName { get; }
 
     protected override async Task ExecuteAsync(CancellationTokenSource reloadTokenSource)
     {
@@ -113,14 +116,16 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
 
                     await Task.Delay(options.PollDelay.Jitter(), stoppingToken);
                 }
-                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                catch (Exception ex) when (ex.IsCancel() && stoppingToken.IsCancellationRequested)
                 {
                     // Graceful shutdown
                     return;
                 }
                 catch (Exception ex)
                 {
-                    _logger.ErrorOutboxBackgroundService(typeof(TPayload).Name, ex);
+                    var type = typeof(TPayload);
+
+                    _logger.ErrorOutboxBackgroundService(type.FullName ?? type.Name, ex);
 
                     // Prevent tight loop on errors
                     await Task.Delay(options.FailureDelay.Jitter(), stoppingToken);
@@ -148,29 +153,31 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
         IOutboxRunnerOptions options,
         CancellationToken cancellationToken)
     {
-        using var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        cancellationTokenSource.CancelAfter(options.HandleTimeout);
-
-        var stoppingToken = cancellationTokenSource.Token;
-
         var startTimestamp = Stopwatch.GetTimestamp();
 
         var outboxMessages = await provider.GetAsync<TPayload>(
             identifier: identifier,
             count: options.BufferSize,
             visibility: options.Visibility,
-            cancellationToken: stoppingToken);
+            cancellationToken: cancellationToken);
 
         var elapsed = Stopwatch.GetElapsedTime(startTimestamp);
 
-        await _metricsHandler.ReadedInAsync(identifier, elapsed, stoppingToken);
+        await _metricsHandler.ReadedInAsync(identifier, elapsed, cancellationToken);
 
         if (outboxMessages.Count is 0)
             return false;
 
+        _logger.OutboxMessagesFetched(identifier, outboxMessages.Count, elapsed);
+
+        using var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cancellationTokenSource.CancelAfter(options.HandleTimeout);
+
+        var cycleCancellationToken = cancellationTokenSource.Token;
+
         var loopTasks = outboxMessages
             .Chunk(options.PerBufferCount)
-            .Select(g => LoopAsync(g, stoppingToken))
+            .Select(g => LoopAsync(g, cycleCancellationToken))
             .ToArray();
 
         if (loopTasks is [])
@@ -189,16 +196,18 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
         await provider.RetryAsync(
             identifier: identifier,
             messages: toRetryMessages,
-            cancellationToken: stoppingToken);
+            cancellationToken: cancellationToken);
 
         await provider.DeleteAsync(
             identifier: identifier,
             ids: toDeleteMessages,
             policy: options.DeletePolicy,
-            cancellationToken: stoppingToken);
+            cancellationToken: cancellationToken);
 
-        await _metricsHandler.RetriedAsync(identifier, toRetryMessages.Length, stoppingToken);
-        await _metricsHandler.DeletedAsync(identifier, toDeleteMessages.Length, stoppingToken);
+        await _metricsHandler.RetriedAsync(identifier, toRetryMessages.Length, cancellationToken);
+        await _metricsHandler.DeletedAsync(identifier, toDeleteMessages.Length, cancellationToken);
+
+        _logger.OutboxMessagesProcessed(identifier, outboxMessages.Count, toRetryMessages.Length, toDeleteMessages.Length);
 
         return contexts.Any(c => c.IsSuccess);
 
@@ -224,9 +233,17 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
                     elapsed: elapsed,
                     cancellationToken: stoppingToken);
             }
+            catch (Exception ex) when (ex.IsCancel() && cancellationToken.IsCancellationRequested)
+            {
+                // Graceful shutdown
+                throw;
+            }
             catch (Exception ex)
             {
-                _logger.ErrorProcessingMessages(typeof(TPayload).Name, ex);
+                var type = typeof(TPayload);
+
+                _logger.ErrorProcessingMessages(type.FullName ?? type.Name, ex);
+
                 context.Fail(options.FailureDelay);
             }
 

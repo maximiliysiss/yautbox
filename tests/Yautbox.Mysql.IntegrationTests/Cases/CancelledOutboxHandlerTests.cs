@@ -10,6 +10,8 @@ using Yautbox.Handlers;
 using Yautbox.Mysql.IntegrationTests.Shared.Extensions;
 using Yautbox.Mysql.IntegrationTests.Shared.Fixture;
 using Yautbox.Services;
+using Microsoft.Extensions.Logging;
+using Polly;
 
 namespace Yautbox.Mysql.IntegrationTests.Cases;
 
@@ -24,7 +26,8 @@ public class CancelledOutboxHandlerTests(IntegrationTestFixture fixture)
         using var scope = fixture.Services.CreateScope();
 
         var service = scope.ServiceProvider.GetRequiredService<IOutboxService>();
-        var scheduledAt = DateTimeOffset.UtcNow.AddMilliseconds(300);
+        // Keep scheduled time well in the future to avoid racing the runner.
+        var scheduledAt = DateTimeOffset.UtcNow.AddSeconds(5);
         var message = new Message(11);
 
         // Act
@@ -41,13 +44,23 @@ public class CancelledOutboxHandlerTests(IntegrationTestFixture fixture)
 
     public sealed class Handler : IOutboxHandler<Message>
     {
+        private readonly ILogger<Handler> _logger;
+        public Handler(ILogger<Handler> logger)
+        {
+            _logger = logger;
+        }
+
         private static int _callCount;
         public static int CallCount => Volatile.Read(ref _callCount);
 
-        public static void Reset() => Interlocked.Exchange(ref _callCount, 0);
+        public static void Reset()
+        {
+            Interlocked.Exchange(ref _callCount, 0);
+        }
 
         public Task HandleAsync(IEnumerable<OutboxMessage<Message>> messages, CancellationToken cancellationToken)
         {
+            _logger.LogInformation("Handling messages.");
             foreach (var _ in messages)
                 Interlocked.Increment(ref _callCount);
 

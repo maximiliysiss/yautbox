@@ -49,6 +49,8 @@ internal sealed class PostgresOutboxRepository : IPostgresOutboxRepository
         TimeSpan locker,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
+        _logger.FetchingOutboxMessages(identifier, count);
+
         var query = @$"
 UPDATE {_options.SchemaName}.outbox_messages om
 SET locker = :locker
@@ -86,6 +88,8 @@ RETURNING om.id, om.payload, om.attempt,
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
+        var fetchedCount = 0;
+
         while (await reader.ReadAsync(cancellationToken))
         {
             var payloadString = reader.GetNullableString("payload");
@@ -112,7 +116,11 @@ RETURNING om.id, om.payload, om.attempt,
                 Attempt: reader.GetInt32("attempt"),
                 ScheduledAt: reader.GetFieldValue<DateTimeOffset?>("scheduledAt"),
                 CreatedAt: reader.GetFieldValue<DateTimeOffset>("createdAt"));
+
+            fetchedCount++;
         }
+
+        _logger.FetchedOutboxMessages(identifier, fetchedCount);
     }
 
     public async IAsyncEnumerable<OutboxMessageId> AddAsync<T>(
@@ -122,6 +130,8 @@ RETURNING om.id, om.payload, om.attempt,
     {
         if (messages.Count is 0)
             yield break;
+
+        _logger.AddingOutboxMessages(identifier, messages.Count);
 
         var query = @$"
 INSERT INTO {_options.SchemaName}.outbox_messages(type, payload, created_at, attempt, scheduled_at, is_deleted)
@@ -148,8 +158,15 @@ RETURNING id;
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
+        var addedCount = 0;
+
         while (await reader.ReadAsync(cancellationToken))
+        {
             yield return new OutboxMessageId(reader.GetInt64("id"));
+            addedCount++;
+        }
+
+        _logger.AddedOutboxMessages(identifier, addedCount);
 
         yield break;
 
@@ -163,6 +180,8 @@ RETURNING id;
     {
         if (ids.Count is 0)
             return;
+
+        _logger.DeletingOutboxMessages(ids.Count, policy);
 
         var safeDeleteQuery = @$"
 UPDATE {_options.SchemaName}.outbox_messages
@@ -195,13 +214,17 @@ WHERE id = ANY(:ids) AND NOT is_deleted;
 
         await connection.OpenAsync(cancellationToken);
 
-        await command.ExecuteNonQueryAsync(cancellationToken);
+        var rowsAffected = await command.ExecuteNonQueryAsync(cancellationToken);
+
+        _logger.DeletedOutboxMessages(ids.Count, rowsAffected, policy);
     }
 
     public async Task UpdateAsync<T>(IReadOnlyCollection<OutboxMessage<T>> messages, CancellationToken cancellationToken)
     {
         if (messages.Count is 0)
             return;
+
+        _logger.UpdatingOutboxMessages(messages.Count);
 
         var query = @$"
 UPDATE {_options.SchemaName}.outbox_messages om
@@ -226,11 +249,15 @@ WHERE om.id = t.id AND NOT is_deleted;
 
         await connection.OpenAsync(cancellationToken);
 
-        await command.ExecuteNonQueryAsync(cancellationToken);
+        var rowsAffected = await command.ExecuteNonQueryAsync(cancellationToken);
+
+        _logger.UpdatedOutboxMessages(messages.Count, rowsAffected);
     }
 
     public async Task CleanAsync(string identifier, DateTimeOffset olderThan, CancellationToken cancellationToken)
     {
+        _logger.CleaningOutboxMessages(identifier, olderThan);
+
         var query = $@"
 WITH deleted AS (
     SELECT id
@@ -260,6 +287,9 @@ WHERE om.id IN (SELECT id FROM deleted);
             await connection.OpenAsync(cancellationToken);
 
             var rowAffected = await command.ExecuteNonQueryAsync(cancellationToken);
+
+            if (rowAffected > 0)
+                _logger.CleanedOutboxMessages(identifier, rowAffected);
 
             if (rowAffected is 0)
                 break;

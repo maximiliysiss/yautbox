@@ -16,7 +16,7 @@ using Yautbox.Mysql.IntegrationTests.Shared.Fixture;
 using Yautbox.Mysql.Options;
 using Yautbox.Runner.Options;
 using Yautbox.Services;
-
+using Microsoft.Extensions.Logging;
 namespace Yautbox.Mysql.IntegrationTests.Cases;
 
 [Collection(nameof(IntegrationTestCollection))]
@@ -63,8 +63,17 @@ public class ParallelWorkersTests
 
     public sealed class OutboxHandleTestsHandler : IOutboxHandler<ParallelWorkerEvent>
     {
+        private readonly ILogger<OutboxHandleTestsHandler> _logger;
+        public OutboxHandleTestsHandler(ILogger<OutboxHandleTestsHandler> logger)
+        {
+            _logger = logger;
+        }
+
         public Task HandleAsync(IEnumerable<OutboxMessage<ParallelWorkerEvent>> messages, CancellationToken cancellationToken)
-            => Task.CompletedTask;
+        {
+            _logger.LogInformation("Handling messages.");
+            return Task.CompletedTask;
+        }
     }
 
     public sealed record ParallelWorkerEvent(int Id, string Name);
@@ -80,7 +89,7 @@ public class ParallelWorkersTests
         public string? Identifier => null;
         public TimeSpan PollDelay => TimeSpan.FromSeconds(5);
         public int BufferSize => 3;
-        public TimeSpan HandleTimeout => TimeSpan.FromMinutes(30);
+        public TimeSpan HandleTimeout => TimeSpan.FromMinutes(10);
         public bool IsEnabled => true;
         public int WorkersCount => 5;
     }

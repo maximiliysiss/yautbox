@@ -10,7 +10,7 @@ using Yautbox.Handlers;
 using Yautbox.Postgres.IntegrationTests.Shared.Extensions;
 using Yautbox.Postgres.IntegrationTests.Shared.Fixture;
 using Yautbox.Services;
-
+using Microsoft.Extensions.Logging;
 namespace Yautbox.Postgres.IntegrationTests.Cases;
 
 [Collection(nameof(IntegrationTestCollection))]
@@ -41,13 +41,23 @@ public class CancelledOutboxHandlerTests(IntegrationTestFixture fixture)
 
     public sealed class Handler : IOutboxHandler<Message>
     {
+        private readonly ILogger<Handler> _logger;
+        public Handler(ILogger<Handler> logger)
+        {
+            _logger = logger;
+        }
+
         private static int _callCount;
         public static int CallCount => Volatile.Read(ref _callCount);
 
-        public static void Reset() => Interlocked.Exchange(ref _callCount, 0);
+        public static void Reset()
+        {
+            Interlocked.Exchange(ref _callCount, 0);
+        }
 
         public Task HandleAsync(IEnumerable<OutboxMessage<Message>> messages, CancellationToken cancellationToken)
         {
+            _logger.LogInformation("Handling messages.");
             foreach (var _ in messages)
                 Interlocked.Increment(ref _callCount);
 
