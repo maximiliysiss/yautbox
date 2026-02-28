@@ -51,13 +51,15 @@ internal sealed class OutboxService : IOutboxService
     {
         await _waiter.WaitAsync(cancellationToken);
 
-        _logger.AddedOutboxMessage();
-
         var identifier = _registry.GetIdentifier<T>();
+
+        var mappedMessages = messages.Select(Map).ToArray();
+
+        _logger.AddedOutboxMessage(identifier, mappedMessages.Length, scheduledAt);
 
         var outboxMessageIds = await _outboxProvider.AddAsync(
             identifier: identifier,
-            messages: [.. messages.Select(Map)],
+            messages: mappedMessages,
             cancellationToken: cancellationToken);
 
         await _metricsHandler.AddedAsync(
@@ -84,10 +86,10 @@ internal sealed class OutboxService : IOutboxService
     {
         await _waiter.WaitAsync(cancellationToken);
 
-        _logger.CancelOutboxMessage();
-
         var identifier = _registry.GetIdentifier<T>();
         var outboxMessageIds = ids.ToArray();
+
+        _logger.CancelOutboxMessage(identifier, outboxMessageIds.Length);
 
         await _outboxProvider.CancelAsync(
             identifier: identifier,

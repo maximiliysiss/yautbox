@@ -95,6 +95,8 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
                 var olderThan = _dateTimeProvider.GetNow() - options.BackupInterval.Value;
                 var identifier = registry.GetIdentifier<TPayload>();
 
+                _logger.OutboxCleanupStarted(identifier, olderThan);
+
                 var startTimestamp = Stopwatch.GetTimestamp();
 
                 await provider.CleanAsync(identifier, olderThan, cancellationToken);
@@ -102,6 +104,8 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
                 var elapsed = Stopwatch.GetElapsedTime(startTimestamp);
 
                 await _metricsHandler.CleanedInAsync(identifier, elapsed, cancellationToken);
+
+                _logger.OutboxCleanupFinished(identifier, elapsed);
 
                 await Task.Delay(options.BackupInterval.Value, cancellationToken);
             }

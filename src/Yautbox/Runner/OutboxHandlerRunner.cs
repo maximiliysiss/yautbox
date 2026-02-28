@@ -168,6 +168,8 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
         if (outboxMessages.Count is 0)
             return false;
 
+        _logger.OutboxMessagesFetched(identifier, outboxMessages.Count, elapsed);
+
         using var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         cancellationTokenSource.CancelAfter(options.HandleTimeout);
 
@@ -204,6 +206,8 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
 
         await _metricsHandler.RetriedAsync(identifier, toRetryMessages.Length, cancellationToken);
         await _metricsHandler.DeletedAsync(identifier, toDeleteMessages.Length, cancellationToken);
+
+        _logger.OutboxMessagesProcessed(identifier, outboxMessages.Count, toRetryMessages.Length, toDeleteMessages.Length);
 
         return contexts.Any(c => c.IsSuccess);
 

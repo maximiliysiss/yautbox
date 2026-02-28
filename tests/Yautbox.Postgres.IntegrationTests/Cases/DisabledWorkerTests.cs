@@ -14,7 +14,7 @@ using Yautbox.Postgres.IntegrationTests.Shared.Fixture;
 using Yautbox.Postgres.Options;
 using Yautbox.Runner.Options;
 using Yautbox.Services;
-
+using Microsoft.Extensions.Logging;
 namespace Yautbox.Postgres.IntegrationTests.Cases;
 
 [Collection(nameof(IntegrationTestCollection))]
@@ -66,8 +66,17 @@ public class DisabledWorkerTests : IAsyncLifetime
 
     public sealed class TestMessageHandler : IOutboxHandler<TestMessage>
     {
+        private readonly ILogger<TestMessageHandler> _logger;
+        public TestMessageHandler(ILogger<TestMessageHandler> logger)
+        {
+            _logger = logger;
+        }
+
         public Task HandleAsync(IEnumerable<Handlers.OutboxMessage<TestMessage>> messages, CancellationToken cancellationToken)
-            => Task.CompletedTask;
+        {
+            _logger.LogInformation("Handling messages.");
+            return Task.CompletedTask;
+        }
     }
 
     public sealed class TestMessageHandlerOptions : IOutboxRunnerOptions

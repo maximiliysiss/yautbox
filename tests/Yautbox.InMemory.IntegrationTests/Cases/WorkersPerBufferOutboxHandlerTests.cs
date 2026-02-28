@@ -11,7 +11,7 @@ using Xunit;
 using Yautbox.Handlers;
 using Yautbox.InMemory.IntegrationTests.Shared.Fixture;
 using Yautbox.Services;
-
+using Microsoft.Extensions.Logging;
 namespace Yautbox.InMemory.IntegrationTests.Cases;
 
 [Collection(nameof(IntegrationTestCollection))]
@@ -55,13 +55,23 @@ public class WorkersPerBufferOutboxHandlerTests(IntegrationTestFixture fixture)
 
     public sealed class Handler : IOutboxHandler<Message>
     {
+        private readonly ILogger<Handler> _logger;
+        public Handler(ILogger<Handler> logger)
+        {
+            _logger = logger;
+        }
+
         private static ConcurrentDictionary<int, byte> _values = new();
         public static IReadOnlyCollection<int> Values => [.. _values.Keys];
 
-        public static void Reset() => _values = new ConcurrentDictionary<int, byte>();
+        public static void Reset()
+        {
+            _values = new ConcurrentDictionary<int, byte>();
+        }
 
         public Task HandleAsync(IEnumerable<OutboxMessage<Message>> messages, CancellationToken cancellationToken)
         {
+            _logger.LogInformation("Handling messages.");
             foreach (var message in messages)
                 _values.TryAdd(message.Payload.Value, 0);
 

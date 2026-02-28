@@ -10,7 +10,7 @@ using Xunit;
 using Yautbox.Handlers;
 using Yautbox.Postgres.IntegrationTests.Shared.Fixture;
 using Yautbox.Services;
-
+using Microsoft.Extensions.Logging;
 namespace Yautbox.Postgres.IntegrationTests.Cases;
 
 [Collection(nameof(IntegrationTestCollection))]
@@ -54,13 +54,23 @@ public class SequentialExecutionOutboxHandlerTests(IntegrationTestFixture fixtur
 
     public sealed class Handler : IOutboxHandler<Message>
     {
+        private readonly ILogger<Handler> _logger;
+        public Handler(ILogger<Handler> logger)
+        {
+            _logger = logger;
+        }
+
         private static List<int> _values = [];
         public static IReadOnlyCollection<int> Values => _values;
 
-        public static void Reset() => _values = [];
+        public static void Reset()
+        {
+            _values = [];
+        }
 
         public Task HandleAsync(IEnumerable<OutboxMessage<Message>> messages, CancellationToken cancellationToken)
         {
+            _logger.LogInformation("Handling messages.");
             foreach (var message in messages)
                 _values.Add(message.Payload.Value);
 

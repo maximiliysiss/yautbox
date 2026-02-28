@@ -11,7 +11,7 @@ using Yautbox.Handlers;
 using Yautbox.InMemory.IntegrationTests.Shared.Extensions;
 using Yautbox.InMemory.IntegrationTests.Shared.Fixture;
 using Yautbox.Services;
-
+using Microsoft.Extensions.Logging;
 namespace Yautbox.InMemory.IntegrationTests.Cases;
 
 [Collection(nameof(IntegrationTestCollection))]
@@ -55,6 +55,12 @@ public class HandleTimeoutOutboxHandlerTests(IntegrationTestFixture fixture)
 
     public sealed class Handler : IOutboxHandler<Message>
     {
+        private readonly ILogger<Handler> _logger;
+        public Handler(ILogger<Handler> logger)
+        {
+            _logger = logger;
+        }
+
         private static int _callCount;
         private static int _succeeded;
         private static int _successAttempt = -1;
@@ -71,14 +77,16 @@ public class HandleTimeoutOutboxHandlerTests(IntegrationTestFixture fixture)
 
         public async Task HandleAsync(IEnumerable<OutboxMessage<Message>> messages, CancellationToken cancellationToken)
         {
+            _logger.LogInformation("Handling messages.");
             Interlocked.Increment(ref _callCount);
             var message = messages.First();
 
             if (Interlocked.Exchange(ref _succeeded, 1) == 0)
             {
+                _logger.LogInformation("Invariant hit: if condition evaluated true.");
                 await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
                 return;
-            }
+        }
 
             Volatile.Write(ref _successAttempt, message.Attempt + 1);
         }

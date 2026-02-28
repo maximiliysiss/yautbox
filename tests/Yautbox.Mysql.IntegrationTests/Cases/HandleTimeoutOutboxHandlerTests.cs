@@ -11,6 +11,7 @@ using Yautbox.Handlers;
 using Yautbox.Mysql.IntegrationTests.Shared.Extensions;
 using Yautbox.Mysql.IntegrationTests.Shared.Fixture;
 using Yautbox.Services;
+using Microsoft.Extensions.Logging;
 
 namespace Yautbox.Mysql.IntegrationTests.Cases;
 
@@ -55,6 +56,13 @@ public class HandleTimeoutOutboxHandlerTests(IntegrationTestFixture fixture)
 
     public sealed class Handler : IOutboxHandler<Message>
     {
+        private readonly ILogger<Handler> _logger;
+
+        public Handler(ILogger<Handler> logger)
+        {
+            _logger = logger;
+        }
+
         private static int _callCount;
         private static int _succeeded;
         private static int _successAttempt = -1;
@@ -71,11 +79,13 @@ public class HandleTimeoutOutboxHandlerTests(IntegrationTestFixture fixture)
 
         public async Task HandleAsync(IEnumerable<OutboxMessage<Message>> messages, CancellationToken cancellationToken)
         {
+            _logger.LogInformation("Handling messages.");
             Interlocked.Increment(ref _callCount);
             var message = messages.First();
 
             if (Interlocked.Exchange(ref _succeeded, 1) == 0)
             {
+                _logger.LogInformation("Invariant hit: if condition evaluated true.");
                 await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
                 return;
             }
