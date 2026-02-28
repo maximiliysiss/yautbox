@@ -29,6 +29,7 @@ internal sealed class InitialMigration : SqlMigration
              `scheduled_at` DATETIME(6) NULL,
              `is_deleted`   TINYINT(1) NOT NULL DEFAULT 0,
              `locker`       DATETIME(6) NULL,
+             `locked_by`    VARCHAR(255) NULL,
              PRIMARY KEY (`id`)
          ) ENGINE=InnoDB;
 

@@ -8,7 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using MySqlConnector;
 using Yautbox.Entities;
 using Yautbox.Mysql.Extensions.Logger;
 using Yautbox.Mysql.Extensions.MySql;
@@ -45,102 +44,83 @@ internal sealed class MysqlOutboxRepository : IMysqlOutboxRepository
         TimeSpan locker,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
+        var lockedBy = Guid.NewGuid().ToString("N");
         var tableName = $"`{_options.SchemaName}`.`outbox_messages`";
 
         var selectQuery = $@"
-SELECT id, payload, attempt,
-    scheduled_at AS scheduledAt,
-    created_at AS createdAt
-FROM {tableName}
-WHERE type = @type
-  AND is_deleted = 0
-  AND (scheduled_at IS NULL OR scheduled_at <= @now)
-  AND (locker IS NULL OR locker <= @now)
-ORDER BY id
-LIMIT @count
-FOR UPDATE SKIP LOCKED;
+START TRANSACTION;
+
+UPDATE {tableName} t
+JOIN (
+    SELECT id
+    FROM {tableName}
+    WHERE type = @type
+      AND is_deleted = 0
+      AND (scheduled_at IS NULL OR scheduled_at <= @now)
+      AND (locker IS NULL OR locker <= @now)
+    ORDER BY id
+    LIMIT @count
+    FOR UPDATE SKIP LOCKED
+) s ON s.id = t.id
+SET t.locker = @locker,
+    t.locked_by = @lockedBy;
+
+SELECT id, payload, attempt, scheduled_at, created_at
+FROM outbox_messages
+WHERE locked_by = @lockedBy;
+
+COMMIT;
 ";
 
         var now = _dateTimeProvider.GetNow();
         var nowUtc = now.UtcDateTime;
         var lockerUtc = now.Add(locker).UtcDateTime;
 
-        var messages = new List<OutboxMessage<T>>(count);
-        var ids = new List<long>(count);
-
         await using var connection = await _connectionFactory.GetConnectionAsync(cancellationToken);
         await connection.OpenAsync(cancellationToken);
 
-        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        await using DbCommand selectCommand = connection.CreateCommand();
+        selectCommand.CommandText = selectQuery;
 
-        await using (DbCommand selectCommand = connection.CreateCommand())
+        selectCommand.Parameters.Add("type", identifier);
+        selectCommand.Parameters.Add("now", nowUtc);
+        selectCommand.Parameters.Add("count", count);
+        selectCommand.Parameters.Add("locker", lockerUtc);
+        selectCommand.Parameters.Add("lockedBy", lockedBy);
+
+        await using var reader = await selectCommand.ExecuteReaderAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
         {
-            selectCommand.CommandText = selectQuery;
-            selectCommand.Transaction = transaction;
-            selectCommand.Parameters.Add("type", identifier);
-            selectCommand.Parameters.Add("now", nowUtc);
-            selectCommand.Parameters.Add("count", count);
+            var payloadString = reader.GetNullableString("payload");
 
-            await using var reader = await selectCommand.ExecuteReaderAsync(cancellationToken);
-
-            while (await reader.ReadAsync(cancellationToken))
+            if (string.IsNullOrWhiteSpace(payloadString))
             {
-                var payloadString = reader.GetNullableString("payload");
-
-                if (string.IsNullOrWhiteSpace(payloadString))
-                {
-                    _logger.OutboxPayloadInvalid(identifier);
-                    continue;
-                }
-
-                var payload = JsonSerializer.Deserialize<T>(
-                    json: payloadString,
-                    options: _options.JsonSerializerOptions);
-
-                if (payload is null)
-                {
-                    _logger.OutboxPayloadInvalid(identifier);
-                    continue;
-                }
-
-                var id = reader.GetInt64(reader.GetOrdinal("id"));
-                var scheduledAt = reader.GetNullableDateTime("scheduledAt");
-                var createdAt = reader.GetDateTime(reader.GetOrdinal("createdAt"));
-
-                messages.Add(
-                    new OutboxMessage<T>(
-                        Id: new OutboxMessageId(id),
-                        Payload: payload,
-                        Attempt: reader.GetInt32(reader.GetOrdinal("attempt")),
-                        ScheduledAt: scheduledAt.HasValue ? ToDateTimeOffsetUtc(scheduledAt.Value) : null,
-                        CreatedAt: ToDateTimeOffsetUtc(createdAt)));
-
-                ids.Add(id);
+                _logger.OutboxPayloadInvalid(identifier);
+                continue;
             }
+
+            var payload = JsonSerializer.Deserialize<T>(
+                json: payloadString,
+                options: _options.JsonSerializerOptions);
+
+            if (payload is null)
+            {
+                _logger.OutboxPayloadInvalid(identifier);
+                continue;
+            }
+
+            var id = reader.GetInt64(reader.GetOrdinal("id"));
+            var scheduledAt = reader.GetNullableDateTime("scheduledAt");
+            var createdAt = reader.GetDateTime(reader.GetOrdinal("createdAt"));
+
+            yield return new OutboxMessage<T>(
+                Id: new OutboxMessageId(id),
+                Payload: payload,
+                Attempt: reader.GetInt32(reader.GetOrdinal("attempt")),
+                ScheduledAt: scheduledAt.HasValue ? ToDateTimeOffsetUtc(scheduledAt.Value) : null,
+                CreatedAt: ToDateTimeOffsetUtc(createdAt));
         }
-
-        if (ids.Count > 0)
-        {
-            await using DbCommand updateCommand = connection.CreateCommand();
-            updateCommand.Transaction = transaction;
-
-            var idsClause = BuildIdParameters(updateCommand, ids, "id");
-
-            updateCommand.CommandText = $@"
-UPDATE {tableName}
-SET locker = @locker
-WHERE id IN ({idsClause});
-";
-
-            updateCommand.Parameters.Add("locker", lockerUtc);
-
-            await updateCommand.ExecuteNonQueryAsync(cancellationToken);
-        }
-
-        await transaction.CommitAsync(cancellationToken);
-
-        foreach (var message in messages)
-            yield return message;
     }
 
     public async IAsyncEnumerable<OutboxMessageId> AddAsync<T>(
@@ -210,7 +190,8 @@ VALUES (@type, @payload, @created_at, @attempt, @scheduled_at, 0);
         var safeDeleteQuery = $@"
 UPDATE {tableName}
 SET is_deleted = 1,
-    locker = NULL
+    locker = NULL,
+    locked_by = NULL
 WHERE id IN ({{0}}) AND is_deleted = 0;
 ";
 
@@ -247,7 +228,8 @@ WHERE id IN ({{0}}) AND is_deleted = 0;
 UPDATE {tableName}
 SET attempt = @attempt,
     scheduled_at = @scheduled_at,
-    locker = NULL
+    locker = NULL,
+    locked_by = NULL
 WHERE id = @id AND is_deleted = 0;
 ";
 
