@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.Common;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -50,6 +52,8 @@ internal sealed class MysqlOutboxRepository : IMysqlOutboxRepository
         var tableName = $"`{_options.SchemaName}`.`outbox_messages`";
 
         var selectQuery = $@"
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+
 START TRANSACTION;
 
 UPDATE {tableName} t
@@ -143,10 +147,19 @@ COMMIT;
 
         var tableName = $"`{_options.SchemaName}`.`outbox_messages`";
 
-        var query = $@"
-INSERT INTO {tableName} (type, payload, created_at, attempt, scheduled_at, is_deleted)
-VALUES (@type, @payload, @created_at, @attempt, @scheduled_at, 0);
-";
+        var queryBuilder = new StringBuilder();
+        queryBuilder.Append($"INSERT INTO {tableName} (type, payload, created_at, attempt, scheduled_at, is_deleted) VALUES ");
+
+        var index = 0;
+        foreach (var _ in messages)
+        {
+            if (index > 0)
+                queryBuilder.Append(", ");
+            queryBuilder.Append($"(@type, @payload{index}, @created_at{index}, @attempt{index}, @scheduled_at{index}, 0)");
+            index++;
+        }
+
+        queryBuilder.Append(';');
 
         await using var connection = await _connectionFactory.GetConnectionAsync(cancellationToken);
         await connection.OpenAsync(cancellationToken);
@@ -155,36 +168,42 @@ VALUES (@type, @payload, @created_at, @attempt, @scheduled_at, 0);
             ? await connection.BeginTransactionAsync(cancellationToken)
             : null;
 
-        await using DbCommand command = connection.CreateCommand();
-        command.CommandText = query;
-        command.Transaction = transaction;
+        await using (DbCommand command = connection.CreateCommand())
+        {
+            command.CommandText = queryBuilder.ToString();
+            command.Transaction = transaction;
 
-        command.Parameters.Add("type", identifier);
-        command.Parameters.Add("payload", string.Empty);
-        command.Parameters.Add("created_at", DateTime.UtcNow);
-        command.Parameters.Add("attempt", 0);
-        command.Parameters.Add("scheduled_at", DBNull.Value);
+            command.Parameters.Add("type", identifier);
 
-        await using DbCommand idCommand = connection.CreateCommand();
-        idCommand.CommandText = "SELECT LAST_INSERT_ID();";
-        idCommand.Transaction = transaction;
+            index = 0;
+
+            foreach (var message in messages)
+            {
+                command.Parameters.Add($"payload{index}", JsonSerializer.Serialize(message.Payload, _options.JsonSerializerOptions));
+                command.Parameters.Add($"created_at{index}", ToUtcDateTime(message.CreatedAt));
+                command.Parameters.Add($"attempt{index}", message.Attempt);
+                command.Parameters.Add($"scheduled_at{index}", ToDbValue(message.ScheduledAt));
+                index++;
+            }
+
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
 
         var addedCount = 0;
 
-        foreach (var message in messages)
+        await using (DbCommand idCommand = connection.CreateCommand())
         {
-            command.Parameters["payload"].Value = JsonSerializer.Serialize(message.Payload, _options.JsonSerializerOptions);
-            command.Parameters["created_at"].Value = ToUtcDateTime(message.CreatedAt);
-            command.Parameters["attempt"].Value = message.Attempt;
-            command.Parameters["scheduled_at"].Value = ToDbValue(message.ScheduledAt);
-
-            await command.ExecuteNonQueryAsync(cancellationToken);
+            idCommand.CommandText = "SELECT LAST_INSERT_ID();";
+            idCommand.Transaction = transaction;
 
             var idValue = await idCommand.ExecuteScalarAsync(cancellationToken);
-            var id = Convert.ToInt64(idValue, CultureInfo.InvariantCulture);
+            var firstId = Convert.ToInt64(idValue, CultureInfo.InvariantCulture);
 
-            yield return new OutboxMessageId(id);
-            addedCount++;
+            for (var i = 0; i < messages.Count; i++)
+            {
+                yield return new OutboxMessageId(firstId + i);
+                addedCount++;
+            }
         }
 
         await (transaction?.CommitAsync(cancellationToken) ?? Task.CompletedTask);

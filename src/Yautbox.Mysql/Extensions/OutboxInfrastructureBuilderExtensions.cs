@@ -69,6 +69,10 @@ public static class OutboxInfrastructureBuilderExtensions
             .Configure<IServiceProvider>(ConfigureSchemaName);
 
         services
+            .AddOptions<MysqlOutboxProviderOptions>()
+            .Configure(ConfigureProviderOptions);
+
+        services
             .TryAddSingleton<IOutboxConnectionFactory, TConnectionFactory>();
 
         services
@@ -94,6 +98,15 @@ public static class OutboxInfrastructureBuilderExtensions
                 opt.CleanupBatchSize = options.CleanupBatchSize.Value;
 
             options.ConfigureJsonOptions?.Invoke(opt.JsonSerializerOptions, provider);
+        }
+
+        void ConfigureProviderOptions(MysqlOutboxProviderOptions opt)
+        {
+            if (options.DeadlockRetryCount is not null)
+                opt.DeadlockRetryCount = options.DeadlockRetryCount.Value;
+
+            if (options.DeadlockDelay is not null)
+                opt.DeadlockDelay = options.DeadlockDelay.Value;
         }
     }
 

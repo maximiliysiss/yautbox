@@ -31,4 +31,20 @@ public sealed class MysqlStoreOptions
     /// Defaults to 1000.
     /// </summary>
     public int? CleanupBatchSize { get; set; }
+
+    /// <summary>
+    /// Defines the number of retry attempts to perform in the event of a database deadlock
+    /// during operations on the outbox. If not specified, no retries are attempted.
+    /// Defaults to 3.
+    /// </summary>
+    public int? DeadlockRetryCount { get; set; }
+
+    /// <summary>
+    /// Defines the duration that the system should wait before retrying
+    /// an operation after encountering a deadlock.
+    /// This property is optional and, if not set, defaults to the
+    /// system's preconfigured behavior for handling deadlock retries.
+    /// Defaults to 50 milliseconds.
+    /// </summary>
+    public TimeSpan? DeadlockDelay { get; set; }
 }
