@@ -44,6 +44,8 @@ services.AddOutboxHandler<OrderPlaced, OrderPlacedHandler>();
 - `CleanupBatchSize` (default: 1000)
 - `ConfigureJsonOptions` (customize `JsonSerializerOptions`)
 
+`CleanupBatchSize` applies when `DeletePolicy.Safe` is used and cleanup is enabled via `BackupInterval`.
+
 Example:
 
 ```csharp

@@ -40,9 +40,11 @@ services.AddOutboxHandler<OrderPlaced, OrderPlacedHandler>();
 
 `MysqlStoreOptions`:
 
-- `SchemaName` (default: "outbox")
+- `SchemaName` (default: "outbox", used as the database name)
 - `CleanupBatchSize` (default: 1000)
 - `ConfigureJsonOptions` (customize `JsonSerializerOptions`)
+
+`CleanupBatchSize` applies when `DeletePolicy.Safe` is used and cleanup is enabled via `BackupInterval`.
 
 Example:
 
@@ -80,7 +82,7 @@ services.AddOutbox(builder => builder.UseMysql<MyConnectionFactory>());
 
 ## Migrations and readiness
 
-This provider runs FluentMigrator migrations on startup and waits for readiness before handlers begin polling. The database user must have permissions to create schemas and tables.
+This provider runs FluentMigrator migrations on startup and waits for readiness before handlers begin polling. The database user must have permissions to create databases and tables.
 
 ## Notes
 

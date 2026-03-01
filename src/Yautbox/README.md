@@ -1,6 +1,6 @@
 # Yautbox
 
-Yautbox is a lightweight .NET outbox library. It lets you enqueue messages during application work and processes them later with background handlers. The core package is storage-agnostic; choose an infrastructure provider (InMemory, MSSQL, Postgres) or implement your own.
+Yautbox is a lightweight .NET outbox library. It lets you enqueue messages during application work and processes them later with background handlers. The core package is storage-agnostic; choose an infrastructure provider (InMemory, MSSQL, MySQL, Postgres) or implement your own.
 
 ## Features
 
@@ -64,13 +64,17 @@ public sealed class OrderPlacedHandler : IOutboxHandler<OrderPlaced>
 ```csharp
 using Yautbox.Services;
 
-await outbox.HandleAsync(new OrderPlaced("A-123"));
-await outbox.HandleAsync(new OrderPlaced("B-456"), scheduledAt: DateTimeOffset.UtcNow.AddMinutes(5));
+await outbox.HandleAsync(new[] { new OrderPlaced("A-123") });
+await outbox.HandleAsync(
+    new[] { new OrderPlaced("B-456") },
+    scheduledAt: DateTimeOffset.UtcNow.AddMinutes(5));
 ```
 
 Cancel by id if needed:
 
 ```csharp
+using Yautbox.Extensions.Outbox;
+
 await outbox.CancelAsync<OrderPlaced>(messageId);
 ```
 
@@ -97,15 +101,15 @@ services
 
 `IOutboxRunnerOptions` settings:
 
-- `Identifier` (default: type name without version info)
-- `PollDelay` (default: 5s)
+- `Identifier` (default: payload type assembly-qualified name without version, culture, or public key token)
+- `PollDelay` (default: 5s + jitter)
 - `BufferSize` (default: 1000)
-- `PerBufferCount` (default: 1000)
+- `PerBufferCount` (default: BufferSize)
 - `HandleTimeout` (default: 30m)
 - `IsEnabled` (default: true)
 - `WorkersCount` (default: 1)
 - `DeletePolicy` (default: Safe)
-- `FailureDelay` (default: 2s)
+- `FailureDelay` (default: 2s + jitter)
 - `Visibility` (default: 10m)
 - `BackupInterval` (default: null, disabled)
 - `ExecutionPolicy` (default: Parallel)
@@ -123,6 +127,33 @@ services
 
 To create a custom storage implementation, implement `IOutboxProvider` and register it via `AddOutbox(builder => builder.SetProvider<...>())`.
 
+## Metrics
+
+Yautbox reports lifecycle metrics through `IMetricsHandler`. The default handler is a no-op. Register a custom handler via the infrastructure builder:
+
+```csharp
+using Yautbox.Extensions.Ioc;
+using Yautbox.Metrics;
+
+services.AddOutbox(builder =>
+{
+    builder.UseInMemory();
+    builder.SetMetrics<MyMetricsHandler>();
+});
+
+public sealed class MyMetricsHandler : IMetricsHandler
+{
+    public ValueTask AddedAsync(string identifier, int count, CancellationToken ct) => ValueTask.CompletedTask;
+    public ValueTask CanceledAsync(string identifier, int count, CancellationToken ct) => ValueTask.CompletedTask;
+    public ValueTask HandledAsync(string identifier, int count, TimeSpan elapsed, CancellationToken ct) => ValueTask.CompletedTask;
+    public ValueTask RetriedAsync(string identifier, int count, CancellationToken ct) => ValueTask.CompletedTask;
+    public ValueTask DeletedAsync(string identifier, int count, CancellationToken ct) => ValueTask.CompletedTask;
+    public ValueTask CleanedInAsync(string identifier, TimeSpan elapsed, CancellationToken ct) => ValueTask.CompletedTask;
+    public ValueTask ReadInAsync(string identifier, TimeSpan elapsed, CancellationToken ct) => ValueTask.CompletedTask;
+    public ValueTask ErrorsAsync(string identifier, int count, CancellationToken ct) => ValueTask.CompletedTask;
+}
+```
+
 ## Target frameworks
 
-`net8.0`, `net9.0`, `net10.0`
+`net8.0`
