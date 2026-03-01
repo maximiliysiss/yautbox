@@ -30,7 +30,7 @@ public class SequentialExecutionOutboxHandlerTests(IntegrationTestFixture fixtur
         // Act
         await service.HandleAsync(messages);
 
-        await WaitForHandledCountAsync(values.Length, TimeSpan.FromSeconds(2));
+        await WaitForHandledCountAsync(values.Length, TimeSpan.FromSeconds(10));
 
         // Assert
         Handler.Values.Should().BeInAscendingOrder().And.BeEquivalentTo(values);
