@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Yautbox.Extensions.Common;
 using Yautbox.Extensions.DateTime;
 using Yautbox.Extensions.Logger;
 using Yautbox.Extensions.Options;
@@ -87,7 +86,6 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
 
         var registry = serviceScope.ServiceProvider.GetRequiredService<IOutboxRegistry>();
 
-        var policy = options.ExecutionPolicy;
         var identifier = registry.GetIdentifier<TPayload>();
 
         var workers = Enumerable
@@ -108,11 +106,9 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
 
                     var provider = scope.ServiceProvider.GetRequiredService<IOutboxProvider>();
                     var handler = scope.ServiceProvider.GetRequiredService<THandler>();
+                    var policyFactory = scope.ServiceProvider.GetRequiredService<IPolicyFactory>();
 
-                    var policyFactory = scope.ServiceProvider.GetService<IPolicyFactory>();
-
-                    await using (var _ = await (policyFactory?.CreateAsync(identifier, policy, stoppingToken) ?? Disposable.EmptyTask))
-                        await HandleLoopAsync(identifier, provider, handler, options, stoppingToken);
+                    await HandleLoopAsync(identifier, provider, handler, options, policyFactory, stoppingToken);
 
                     await Task.Delay(options.PollDelay.Jitter(), stoppingToken);
                 }
@@ -139,10 +135,11 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
         IOutboxProvider provider,
         THandler handler,
         IOutboxRunnerOptions options,
+        IPolicyFactory policyFactory,
         CancellationToken cancellationToken)
     {
         bool succeededProcessing;
-        do succeededProcessing = await TryProcessingMessagesAsync(identifier, provider, handler, options, cancellationToken);
+        do succeededProcessing = await TryProcessingMessagesAsync(identifier, provider, handler, options, policyFactory, cancellationToken);
         while (succeededProcessing && !cancellationToken.IsCancellationRequested);
     }
 
@@ -151,8 +148,11 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
         IOutboxProvider provider,
         THandler handler,
         IOutboxRunnerOptions options,
+        IPolicyFactory policyFactory,
         CancellationToken cancellationToken)
     {
+        await using var _ = await policyFactory.CreateAsync(identifier, options.ExecutionPolicy, cancellationToken);
+
         var startTimestamp = Stopwatch.GetTimestamp();
 
         var outboxMessages = await provider.GetAsync<TPayload>(

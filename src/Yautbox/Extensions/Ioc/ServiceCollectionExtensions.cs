@@ -9,6 +9,7 @@ using Yautbox.Infrastructure.DateTime;
 using Yautbox.Metrics;
 using Yautbox.Registy;
 using Yautbox.Runner;
+using Yautbox.Runner.Infrastructure;
 using Yautbox.Runner.Options;
 using Yautbox.Services;
 
@@ -43,6 +44,9 @@ public static class ServiceCollectionExtensions
 
         services
             .TryAddSingleton<IMetricsHandler, DefaultMetricsHandler>();
+
+        services
+            .TryAddSingleton<IPolicyFactory, DefaultPolicyFactory>();
 
         services
             .AddOptions<OutboxRegistryOptions>()
