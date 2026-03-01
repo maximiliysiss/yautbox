@@ -11,7 +11,6 @@ using Yautbox.Mysql.IntegrationTests.Shared.Extensions;
 using Yautbox.Mysql.IntegrationTests.Shared.Fixture;
 using Yautbox.Services;
 using Microsoft.Extensions.Logging;
-using Polly;
 
 namespace Yautbox.Mysql.IntegrationTests.Cases;
 
