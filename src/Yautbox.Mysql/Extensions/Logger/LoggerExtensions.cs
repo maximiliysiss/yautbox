@@ -38,4 +38,10 @@ internal static partial class LoggerExtensions
 
     [LoggerMessage(11, LogLevel.Debug, "Cleaned {rowsAffected} outbox message(s) for {identifier}.")]
     public static partial void CleanedOutboxMessages(this ILogger logger, string identifier, int rowsAffected);
+
+    [LoggerMessage(12, LogLevel.Warning, "Failed to add messages to outbox because of deadlock.")]
+    public static partial void DeadlockDetected(this ILogger logger);
+
+    [LoggerMessage(13, LogLevel.Debug, "Deadlock detected, retrying in {delay}.")]
+    public static partial void DeadlockRetryDelay(this ILogger logger, TimeSpan delay);
 }

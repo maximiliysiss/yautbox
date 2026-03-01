@@ -26,6 +26,12 @@ namespace Yautbox.Mssql.IntegrationTests.Shared.Fixture;
 
 public sealed class IntegrationTestFixture : WebApplicationFactory<IntegrationTestFixture.Startup>
 {
+    public IntegrationTestFixture()
+    {
+        // Ensure hosted services (outbox runners/migrations) start for tests that only use DI.
+        _ = CreateClient();
+    }
+
     protected override IHostBuilder? CreateHostBuilder() => Host.CreateDefaultBuilder();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)

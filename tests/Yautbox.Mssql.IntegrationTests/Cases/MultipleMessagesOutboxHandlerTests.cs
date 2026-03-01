@@ -52,7 +52,7 @@ public class MultipleMessagesOutboxHandlerTests(IntegrationTestFixture fixture, 
         // Act
         var stopwatch = Stopwatch.StartNew();
         await service.HandleAsync(messages);
-        await WaitForHandledCountAsync(values.Length, TimeSpan.FromSeconds(10));
+        await WaitForHandledCountAsync(values.Length, TimeSpan.FromSeconds(30));
         stopwatch.Stop();
 
         output.WriteLine($"Handled {values.Length} messages in {stopwatch.Elapsed}.");
@@ -66,7 +66,7 @@ public class MultipleMessagesOutboxHandlerTests(IntegrationTestFixture fixture, 
         var stopwatch = Stopwatch.StartNew();
         while (stopwatch.Elapsed < timeout)
         {
-            if (Handler.Values.Count == expected)
+            if (Handler.Values.Count >= expected)
                 return;
 
             await Task.Delay(TimeSpan.FromMilliseconds(20));

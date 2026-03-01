@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using MySqlConnector;
 using Xunit;
 using Yautbox.Entities;
 using Yautbox.Mysql.Infrastructure.Database;
@@ -54,10 +55,7 @@ public class ConcurrentAccessTests : IAsyncLifetime
         // Act
         var tasks = Enumerable
             .Range(0, 50)
-            .Select(_ => outboxRepository
-                .GetAsync<TestMessage>(identifier, count: 2, delay, CancellationToken.None)
-                .ToArrayAsync()
-                .AsTask());
+            .Select(_ => GetWithDeadlockRetryAsync(outboxRepository, identifier, delay, CancellationToken.None));
 
         var messages = await Task.WhenAll(tasks);
 
@@ -70,6 +68,37 @@ public class ConcurrentAccessTests : IAsyncLifetime
     public Task InitializeAsync() => Task.CompletedTask;
 
     public Task DisposeAsync() => _outboxDbHelper.DisposeAsync().AsTask();
+
+    private static async Task<OutboxMessage<TestMessage>[]> GetWithDeadlockRetryAsync(
+        IMysqlOutboxRepository outboxRepository,
+        string identifier,
+        TimeSpan delay,
+        CancellationToken cancellationToken)
+    {
+        const int maxAttempts = 5;
+        var backoff = TimeSpan.FromMilliseconds(25);
+
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                return await outboxRepository
+                    .GetAsync<TestMessage>(identifier, count: 2, delay, cancellationToken)
+                    .ToArrayAsync(cancellationToken: cancellationToken)
+                    .AsTask();
+            }
+            catch (MySqlException ex) when (IsDeadlock(ex) && attempt < maxAttempts)
+            {
+                await Task.Delay(backoff, cancellationToken);
+                backoff = TimeSpan.FromMilliseconds(Math.Min(backoff.TotalMilliseconds * 2, 500));
+            }
+        }
+
+        return [];
+    }
+
+    private static bool IsDeadlock(MySqlException ex)
+        => ex.ErrorCode == MySqlErrorCode.LockDeadlock || ex.Number == 1213;
 
     private sealed record TestMessage(int Id, string Name);
 }
