@@ -52,7 +52,7 @@ internal sealed class PostgresOutboxRepository : IPostgresOutboxRepository
         _logger.FetchingOutboxMessages(identifier, count);
 
         var query = @$"
-UPDATE {_options.SchemaName}.outbox_messages om
+UPDATE {_options.SchemaName}.outbox_messages_active om
 SET locker = :locker
 FROM (
     SELECT id
@@ -64,7 +64,7 @@ FROM (
     LIMIT :count
     FOR UPDATE SKIP LOCKED
 ) s
-WHERE om.id = s.id AND NOT om.is_deleted
+WHERE om.id = s.id
 RETURNING om.id, om.payload, om.attempt,
     om.scheduled_at AS scheduledAt, om.created_at AS createdAt;
 ";
