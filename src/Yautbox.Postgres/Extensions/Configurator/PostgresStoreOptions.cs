@@ -4,31 +4,22 @@ using System.Text.Json;
 namespace Yautbox.Postgres.Extensions.Configurator;
 
 /// <summary>
-/// Configures the Postgres outbox repository.
+/// Configures PostgreSQL storage for the outbox provider.
 /// </summary>
 public sealed class PostgresStoreOptions
 {
     /// <summary>
-    /// Specifies the schema name used for managing the outbox database objects.
-    /// If not explicitly set, defaults to the configured value in the system.
-    /// Defaults to "outbox".
+    /// Gets or sets the schema that contains the outbox tables. The default is <c>outbox</c>.
     /// </summary>
     public string? SchemaName { get; set; }
 
     /// <summary>
-    /// An optional delegate used to configure <see cref="JsonSerializerOptions"/>
-    /// for the Postgres outbox repository. This customization allows the user to
-    /// modify serialization behavior during the lifecycle of the outbox data.
-    /// The provided options and service provider can be utilized to apply
-    /// application-specific configurations.
+    /// Gets or sets a delegate that configures <see cref="JsonSerializerOptions"/> used to serialize payloads.
     /// </summary>
     public Action<JsonSerializerOptions, IServiceProvider>? ConfigureJsonOptions { get; set; }
 
     /// <summary>
-    /// Defines the batch size for cleaning up processed records in the outbox.
-    /// This property determines the maximum number of records that will be removed
-    /// in a single cleanup operation to manage database load and performance.
-    /// Defaults to 1000.
+    /// Gets or sets the maximum number of safe-deleted rows removed in one cleanup operation. The default is 1000.
     /// </summary>
     public int? CleanupBatchSize { get; set; }
 }

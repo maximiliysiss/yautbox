@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 namespace Yautbox.Postgres.Infrastructure.Database;
 
 /// <summary>
-/// Provides database connections for the Postgres outbox repository.
+/// Provides database connections for the PostgreSQL outbox repository.
 /// </summary>
 public interface IOutboxConnectionFactory
 {
@@ -15,7 +15,7 @@ public interface IOutboxConnectionFactory
     string GetConnectionString();
 
     /// <summary>
-    /// Creates and opens a database connection.
+    /// Creates a database connection for outbox operations.
     /// </summary>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
     Task<DbConnection> GetConnectionAsync(CancellationToken cancellationToken);

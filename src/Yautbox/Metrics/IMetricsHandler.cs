@@ -72,6 +72,5 @@ public interface IMetricsHandler
     /// <param name="identifier">Outbox handler identifier.</param>
     /// <param name="count">Number of errors.</param>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
-    /// <returns></returns>
     ValueTask ErrorsAsync(string identifier, int count, CancellationToken cancellationToken);
 }

@@ -2,6 +2,9 @@ using System;
 
 namespace Yautbox.Runner.Options;
 
+/// <summary>
+/// Provides default runner option values for handlers that only need to specify <see cref="IOutboxRunnerOptions.BufferSize"/>.
+/// </summary>
 public interface ISimpleRunnerOptions : IOutboxRunnerOptions
 {
     string? IOutboxRunnerOptions.Identifier => null;

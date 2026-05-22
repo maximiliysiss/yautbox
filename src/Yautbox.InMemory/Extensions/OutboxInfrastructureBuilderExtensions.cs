@@ -13,7 +13,7 @@ namespace Yautbox.InMemory.Extensions;
 public static class OutboxInfrastructureBuilderExtensions
 {
     /// <summary>
-    /// Configures an in-memory outbox provider and options.
+    /// Configures the in-memory outbox provider and its options.
     /// </summary>
     /// <param name="builder">Infrastructure builder to configure.</param>
     /// <param name="options">Optional in-memory options override.</param>

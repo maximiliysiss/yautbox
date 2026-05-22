@@ -6,12 +6,12 @@ namespace Yautbox.Runner.Options;
 public enum ExecutionPolicy
 {
     /// <summary>
-    /// Non-blocking execution policy.
+    /// Allows workers to process messages without acquiring a sequential policy scope.
     /// </summary>
     Parallel,
 
     /// <summary>
-    /// Blocking execution policy.
+    /// Requires a provider policy scope before processing messages for the same identifier.
     /// </summary>
     Sequential
 }

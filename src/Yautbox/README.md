@@ -1,6 +1,6 @@
 # Yautbox
 
-Yautbox is a lightweight .NET outbox library. It lets you enqueue messages during application work and processes them later with background handlers. The core package is storage-agnostic; choose an infrastructure provider (InMemory, MSSQL, MySQL, Postgres) or implement your own.
+Yautbox is a lightweight .NET outbox library. It lets you enqueue messages during application work and process them later with background handlers. The core package is storage-agnostic; choose the in-memory or PostgreSQL provider, or implement your own.
 
 ## Features
 
@@ -12,7 +12,7 @@ Yautbox is a lightweight .NET outbox library. It lets you enqueue messages durin
 
 ## Installation
 
-NuGet (if published):
+NuGet:
 
 ```bash
 dotnet add package Yautbox
@@ -80,7 +80,7 @@ await outbox.CancelAsync<OrderPlaced>(messageId);
 
 ## Configuration options
 
-Each handler can be configured via `AddOutboxHandler().ConfigureOptions<TOptions>()`. The default options type is `DefaultRunnerOptions`.
+Each handler can be configured via `AddOutboxHandler().ConfigureOptions<TOptions>()`. Implement `IOutboxRunnerOptions` for full control or `ISimpleRunnerOptions` when only `BufferSize` must be supplied.
 
 ```csharp
 using Microsoft.Extensions.Options;
@@ -99,21 +99,24 @@ services
         }));
 ```
 
-`IOutboxRunnerOptions` settings:
+`IOutboxRunnerOptions` settings and defaults:
 
 - `Identifier` (default: payload type assembly-qualified name without version, culture, or public key token)
 - `PollDelay` (default: 5s + jitter)
 - `BufferSize` (default: 1000)
 - `PerBufferCount` (default: BufferSize)
-- `HandleTimeout` (default: 30m)
+- `HandleTimeout` (default: 55m)
 - `IsEnabled` (default: true)
 - `WorkersCount` (default: 1)
 - `DeletePolicy` (default: Safe)
 - `FailureDelay` (default: 2s + jitter)
-- `Visibility` (default: 10m)
+- `Visibility` (default: 1h)
 - `BackupInterval` (default: null, disabled)
+- `CleanupInterval` (default: 1d)
 - `ExecutionPolicy` (default: Parallel)
 - `CancellationPolicy` (default: Safe)
+- `PolicyTimeout` (default: 55m)
+- `ScopeLifetime` (default: PerBatch)
 
 ## How it works
 
@@ -121,7 +124,7 @@ services
 - `AddOutboxHandler<TPayload, THandler>()` registers two hosted services:
   - a handler runner that polls, locks, and dispatches messages
   - a cleanup runner that deletes old handled records when `BackupInterval` is set
-- `ExecutionPolicy.Sequential` uses a provider-level lock to ensure a single worker across processes.
+- `ExecutionPolicy.Sequential` uses a provider-level policy scope to ensure single active processing for the same identifier when the provider supports distributed locking.
 
 ## Extensibility
 

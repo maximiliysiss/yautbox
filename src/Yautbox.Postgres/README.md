@@ -1,6 +1,6 @@
 # Yautbox.Postgres
 
-PostgreSQL infrastructure provider for Yautbox. It stores outbox messages in Postgres, applies schema migrations on startup, and supports distributed locks for sequential execution.
+PostgreSQL infrastructure provider for Yautbox. It stores outbox messages in PostgreSQL, applies schema migrations on startup, and uses advisory locks for sequential execution.
 
 ## Features
 
@@ -11,7 +11,7 @@ PostgreSQL infrastructure provider for Yautbox. It stores outbox messages in Pos
 
 ## Installation
 
-NuGet (if published):
+NuGet:
 
 ```bash
 dotnet add package Yautbox.Postgres
@@ -40,8 +40,8 @@ services.AddOutboxHandler<OrderPlaced, OrderPlacedHandler>();
 
 `PostgresStoreOptions`:
 
-- `SchemaName` (default: "outbox", schema must already exist)
-- `CleanupBatchSize` (default: 1000)
+- `SchemaName` (default: `outbox`; the schema must already exist)
+- `CleanupBatchSize` (default: 1000; applies to safe-delete cleanup)
 - `ConfigureJsonOptions` (customize `JsonSerializerOptions`)
 
 `CleanupBatchSize` applies when `DeletePolicy.Safe` is used and cleanup is enabled via `BackupInterval`.
@@ -65,7 +65,7 @@ services.AddOutbox(builder => builder.UsePostgres(
 
 ## Connection factory
 
-If you need custom connection creation (for example, custom connection pooling), register your own factory and use the generic overload:
+If you need custom connection creation, register your own factory and use the generic overload:
 
 ```csharp
 using Yautbox.Postgres.Extensions;
@@ -82,7 +82,7 @@ services.AddOutbox(builder => builder.UsePostgres<MyConnectionFactory>());
 
 ## Migrations and readiness
 
-This provider runs FluentMigrator migrations on startup and waits for readiness before handlers begin polling. Ensure the schema exists (or set `SchemaName` to an existing schema such as `public`). The database user must have permissions to create tables.
+This provider runs FluentMigrator migrations on startup and waits for readiness before handlers begin polling. Ensure the schema exists (or set `SchemaName` to an existing schema such as `public`). The database user must have permissions to create tables, indexes, and the migration version table in that schema.
 
 ## Notes
 

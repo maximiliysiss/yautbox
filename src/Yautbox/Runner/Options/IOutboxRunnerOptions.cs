@@ -8,84 +8,83 @@ namespace Yautbox.Runner.Options;
 public interface IOutboxRunnerOptions
 {
     /// <summary>
-    /// Outbox handler key. Default is typeof(TPayload).AssemblyQualifiedName without version, culture, and public key token
+    /// Gets the outbox handler key. The default is the payload type assembly-qualified name without version, culture, and public key token.
     /// </summary>
     string? Identifier { get; }
 
     /// <summary>
-    /// Delay between outbox cycles when there are no new records. The default value is 5 seconds + jitter
+    /// Gets the delay between polling cycles when there are no new records. The default is 5 seconds plus jitter.
     /// </summary>
     TimeSpan PollDelay { get; }
 
     /// <summary>
-    /// Count of outbox messages which will be handled. The default value is 1000
+    /// Gets the maximum number of outbox messages read in one polling cycle. The default is 1000.
     /// </summary>
     int BufferSize { get; }
 
     /// <summary>
-    /// Timeout to handle all messages in one buffer. The default value is 55 minutes
+    /// Gets the timeout for handling one buffer of messages. The default is 55 minutes.
     /// </summary>
     TimeSpan HandleTimeout { get; }
 
     /// <summary>
-    /// Is enabled this outbox handler or not? Default value is true
+    /// Gets a value indicating whether this outbox handler is enabled. The default is <see langword="true"/>.
     /// </summary>
     bool IsEnabled { get; }
 
     /// <summary>
-    /// Count of parallel workers inside a background job. Default value is 1
-    /// WARNING: it can increase the count of database connections
+    /// Gets the number of parallel workers inside the background job. The default is 1.
     /// </summary>
+    /// <remarks>Increasing this value can increase the number of provider connections.</remarks>
     int WorkersCount { get; }
 
     /// <summary>
-    /// Inner buffers for handling buffer in parallel. Default value is BufferSize
+    /// Gets the maximum number of messages passed to one handler call. The default is <see cref="BufferSize"/>.
     /// </summary>
     int PerBufferCount => BufferSize;
 
     /// <summary>
-    /// Outbox delete policy. Default is safe-delete
+    /// Gets the delete policy for successfully handled messages. The default is <see cref="DeletePolicy.Safe"/>.
     /// </summary>
     DeletePolicy DeletePolicy { get; }
 
     /// <summary>
-    /// Delay when outbox loop cycle failed. Default is 2 seconds + jitter
+    /// Gets the delay after a failed outbox loop cycle. The default is 2 seconds plus jitter.
     /// </summary>
     TimeSpan FailureDelay { get; }
 
     /// <summary>
-    /// Visibility timeout for processing messages. Messages being processed will not be visible to other processors for this duration.
-    /// Default is 1 hour
+    /// Gets the visibility timeout for messages being processed. The default is 1 hour.
     /// </summary>
     TimeSpan Visibility { get; }
 
     /// <summary>
-    /// Interval for cleanup old-handled messages. Default is null (aka off)
+    /// Gets the time-to-live for safe-deleted messages. A <see langword="null"/> value disables cleanup.
     /// </summary>
     TimeSpan? BackupInterval { get; }
 
     /// <summary>
-    /// Interval for cleanup old-handled messages. Default is 1 day
+    /// Gets the interval between cleanup cycles. The default is 1 day.
     /// </summary>
     TimeSpan CleanupInterval { get; }
 
     /// <summary>
-    /// Execution policy for outbox handlers. Default is parallel
+    /// Gets the execution policy for outbox handlers. The default is <see cref="ExecutionPolicy.Parallel"/>.
     /// </summary>
     ExecutionPolicy ExecutionPolicy { get; }
 
     /// <summary>
-    /// Timeout for execution policy. Default is 55 minutes
+    /// Gets the timeout for acquiring or holding the execution policy scope. The default is 55 minutes.
     /// </summary>
     TimeSpan PolicyTimeout { get; }
 
     /// <summary>
-    /// Cancellation policy for outbox handlers. Default is safe-delete
+    /// Gets the cancellation policy for explicitly canceled messages. The default is <see cref="DeletePolicy.Safe"/>.
     /// </summary>
     DeletePolicy CancellationPolicy { get; }
 
     /// <summary>
-    /// Lifetime of the outbox handler scope. Default is per-batch
+    /// Gets the lifetime of the dependency injection scope used to resolve the handler. The default is <see cref="ScopeLifetime.PerBatch"/>.
     /// </summary>
     ScopeLifetime ScopeLifetime { get; }
 }

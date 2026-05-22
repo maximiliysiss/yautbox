@@ -6,12 +6,12 @@ namespace Yautbox.Runner.Options;
 public enum DeletePolicy
 {
     /// <summary>
-    /// Safe delete policy for handleded messages.
+    /// Marks handled messages as deleted so they can be cleaned later.
     /// </summary>
     Safe,
 
     /// <summary>
-    /// Delete policy for handleded messages.
+    /// Permanently deletes handled messages immediately.
     /// </summary>
     Delete,
 }

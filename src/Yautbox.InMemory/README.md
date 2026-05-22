@@ -11,7 +11,7 @@ In-memory infrastructure provider for Yautbox. This provider stores outbox messa
 
 ## Installation
 
-NuGet (if published):
+NuGet:
 
 ```bash
 dotnet add package Yautbox.InMemory
@@ -45,7 +45,7 @@ services.AddOutboxHandler<OrderPlaced, OrderPlacedHandler>();
 
 `InMemoryOutboxOptions`:
 
-- `Capacity` (default: 10000 per handler)
+- `Capacity` (default: 10000 per handler; must be greater than zero)
 
 Example:
 
@@ -62,4 +62,5 @@ services.AddOutbox(builder => builder.UseInMemory(new InMemoryOutboxOptions
 ## Notes
 
 - Messages are stored only in memory and are lost on process restart.
+- `ExecutionPolicy.Sequential` is process-local for this provider.
 - Visibility and retry logic is implemented in-memory and should not be used as a durability mechanism in production.

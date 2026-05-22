@@ -12,7 +12,7 @@ namespace Yautbox.Services;
 public interface IOutboxService
 {
     /// <summary>
-    /// Handle new messages and place them into the outbox
+    /// Enqueues messages for later processing by the registered handler for <typeparamref name="T"/>.
     /// </summary>
     /// <typeparam name="T">Payload type of the messages.</typeparam>
     /// <param name="messages">Messages to enqueue.</param>
@@ -25,9 +25,9 @@ public interface IOutboxService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Cancel outbox handling by ids
-    /// WARNING: some messages can be already handled or be in process. They will be probably ignored
+    /// Cancels queued messages by identifier.
     /// </summary>
+    /// <remarks>Messages that were already handled or are currently being handled may not be canceled.</remarks>
     /// <typeparam name="T">Payload type of the messages.</typeparam>
     /// <param name="ids">Outbox message identifiers to cancel.</param>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>

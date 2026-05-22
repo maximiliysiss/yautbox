@@ -19,15 +19,15 @@ using Yautbox.Postgres.Repositories;
 namespace Yautbox.Postgres.Extensions;
 
 /// <summary>
-/// Extension methods for configuring the Postgres outbox infrastructure.
+/// Extension methods for configuring PostgreSQL outbox infrastructure.
 /// </summary>
 public static class OutboxInfrastructureBuilderExtensions
 {
     /// <summary>
-    /// Configures Postgres outbox infrastructure using a connection string.
+    /// Configures PostgreSQL outbox infrastructure using a connection string.
     /// </summary>
     /// <param name="builder">Infrastructure builder to configure.</param>
-    /// <param name="connectionString">Connection string for the Postgres database.</param>
+    /// <param name="connectionString">Connection string for the PostgreSQL database.</param>
     /// <param name="options">Optional store configuration overrides.</param>
     /// <returns>The same builder instance for chaining.</returns>
     public static IOutboxInfrastructureBuilder UsePostgres(
@@ -44,7 +44,7 @@ public static class OutboxInfrastructureBuilderExtensions
     }
 
     /// <summary>
-    /// Configures Postgres outbox infrastructure using a connection factory.
+    /// Configures PostgreSQL outbox infrastructure using a connection factory.
     /// </summary>
     /// <typeparam name="TConnectionFactory">Connection factory type.</typeparam>
     /// <param name="builder">Infrastructure builder to configure.</param>

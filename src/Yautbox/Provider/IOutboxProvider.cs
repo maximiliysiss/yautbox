@@ -13,7 +13,7 @@ namespace Yautbox.Provider;
 public interface IOutboxProvider
 {
     /// <summary>
-    /// Get outbox messages to handle
+    /// Reads visible messages and reserves them for handling.
     /// </summary>
     /// <typeparam name="T">Payload type of the messages.</typeparam>
     /// <param name="identifier">Outbox handler identifier.</param>
@@ -27,7 +27,7 @@ public interface IOutboxProvider
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// Add messages to outbox
+    /// Persists messages in the outbox.
     /// </summary>
     /// <typeparam name="T">Payload type of the messages.</typeparam>
     /// <param name="identifier">Outbox handler identifier.</param>
@@ -39,7 +39,7 @@ public interface IOutboxProvider
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// Cancel outbox handling by ids
+    /// Cancels messages by identifier.
     /// </summary>
     /// <param name="identifier">Outbox handler identifier.</param>
     /// <param name="ids">Outbox message identifiers to cancel.</param>
@@ -52,7 +52,7 @@ public interface IOutboxProvider
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// Delete outbox messages by ids
+    /// Removes or marks messages as handled according to the delete policy.
     /// </summary>
     /// <param name="identifier">Outbox handler identifier.</param>
     /// <param name="ids">Outbox message identifiers to delete.</param>
@@ -65,7 +65,7 @@ public interface IOutboxProvider
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// Clean safe-deleted outbox messages older than the specified date
+    /// Permanently removes safe-deleted messages older than the specified timestamp.
     /// </summary>
     /// <param name="identifier">Outbox handler identifier.</param>
     /// <param name="olderThan">Remove messages older than this timestamp.</param>
@@ -76,7 +76,7 @@ public interface IOutboxProvider
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// Retry failed messages
+    /// Reschedules messages for retry.
     /// </summary>
     /// <typeparam name="T">Payload type of the messages.</typeparam>
     /// <param name="identifier">Outbox handler identifier.</param>
