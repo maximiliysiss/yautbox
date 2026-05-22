@@ -7,7 +7,7 @@ namespace Yautbox.Extensions.Builders.Handler;
 
 internal class OutboxHandlerBuilder(IServiceCollection services) : IOutboxHandlerBuilder
 {
-    internal Type _optionsType = typeof(InnerDefaultRunnerOptions);
+    internal Type _optionsType = typeof(DefaultRunnerOptions);
 
     public IServiceCollection Services { get; } = services;
 

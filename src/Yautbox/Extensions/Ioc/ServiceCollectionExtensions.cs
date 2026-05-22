@@ -37,7 +37,7 @@ public static class ServiceCollectionExtensions
         configureInfrastructure.Invoke(builder);
 
         services
-            .AddOptions<InnerDefaultRunnerOptions>();
+            .AddOptions<DefaultRunnerOptions>();
 
         services
             .TryAddScoped<IOutboxService, OutboxService>();
