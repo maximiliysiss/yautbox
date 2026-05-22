@@ -15,7 +15,8 @@ public interface IPolicyFactory
     /// </summary>
     /// <param name="identifier">Outbox handler identifier.</param>
     /// <param name="policy">Execution policy to apply.</param>
+    /// <param name="timeout">Timeout for the policy scope.</param>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
     /// <returns>An async disposable that ends the policy scope when disposed.</returns>
-    Task<IAsyncDisposable> CreateAsync(string identifier, ExecutionPolicy policy, CancellationToken cancellationToken);
+    Task<IAsyncDisposable> CreateAsync(string identifier, ExecutionPolicy policy, TimeSpan timeout, CancellationToken cancellationToken);
 }

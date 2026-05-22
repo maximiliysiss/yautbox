@@ -18,6 +18,7 @@ public sealed class BackupIntervalRunnerOptions : IOutboxRunnerOptions
     public TimeSpan? BackupInterval { get; set; } = TimeSpan.FromMilliseconds(200);
     public TimeSpan CleanupInterval { get; } = TimeSpan.FromMilliseconds(200);
     public ExecutionPolicy ExecutionPolicy { get; set; } = ExecutionPolicy.Parallel;
+    public TimeSpan PolicyTimeout { get; set; } = TimeSpan.FromMinutes(10);
     public DeletePolicy CancellationPolicy { get; set; } = DeletePolicy.Safe;
     public ScopeLifetime ScopeLifetime { get; } = ScopeLifetime.PerBatch;
 }

@@ -20,4 +20,5 @@ public sealed class TestRunnerOptions : IOutboxRunnerOptions
     public ExecutionPolicy ExecutionPolicy { get; set; } = ExecutionPolicy.Parallel;
     public DeletePolicy CancellationPolicy { get; set; } = DeletePolicy.Safe;
     public ScopeLifetime ScopeLifetime { get; } = ScopeLifetime.PerBatch;
+    public TimeSpan PolicyTimeout { get; set; } = TimeSpan.FromMinutes(10);
 }

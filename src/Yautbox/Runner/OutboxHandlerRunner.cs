@@ -154,7 +154,11 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
         IPolicyFactory policyFactory,
         CancellationToken cancellationToken)
     {
-        await using var _ = await policyFactory.CreateAsync(identifier, options.ExecutionPolicy, cancellationToken);
+        await using var _ = await policyFactory.CreateAsync(
+            identifier: identifier,
+            policy: options.ExecutionPolicy,
+            timeout: options.PolicyTimeout,
+            cancellationToken: cancellationToken);
 
         var startTimestamp = Stopwatch.GetTimestamp();
 

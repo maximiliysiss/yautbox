@@ -23,7 +23,7 @@ public interface IOutboxRunnerOptions
     int BufferSize { get; }
 
     /// <summary>
-    /// Timeout to handle all messages in one buffer. The default value is 30 minutes
+    /// Timeout to handle all messages in one buffer. The default value is 55 minutes
     /// </summary>
     TimeSpan HandleTimeout { get; }
 
@@ -55,7 +55,7 @@ public interface IOutboxRunnerOptions
 
     /// <summary>
     /// Visibility timeout for processing messages. Messages being processed will not be visible to other processors for this duration.
-    /// Default is 10 minutes
+    /// Default is 1 hour
     /// </summary>
     TimeSpan Visibility { get; }
 
@@ -73,6 +73,11 @@ public interface IOutboxRunnerOptions
     /// Execution policy for outbox handlers. Default is parallel
     /// </summary>
     ExecutionPolicy ExecutionPolicy { get; }
+
+    /// <summary>
+    /// Timeout for execution policy. Default is 55 minutes
+    /// </summary>
+    TimeSpan PolicyTimeout { get; }
 
     /// <summary>
     /// Cancellation policy for outbox handlers. Default is safe-delete

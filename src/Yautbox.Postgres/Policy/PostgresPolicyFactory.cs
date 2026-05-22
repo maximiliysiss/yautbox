@@ -14,7 +14,11 @@ internal sealed class PostgresPolicyFactory(IOutboxConnectionFactory connectionF
     private static readonly IAsyncDisposable _empty = new EmptyDisposable();
     private readonly ConcurrentDictionary<string, PostgresDistributedLock> _locks = [];
 
-    public async Task<IAsyncDisposable> CreateAsync(string identifier, ExecutionPolicy policy, CancellationToken cancellationToken)
+    public async Task<IAsyncDisposable> CreateAsync(
+        string identifier,
+        ExecutionPolicy policy,
+        TimeSpan timeout,
+        CancellationToken cancellationToken)
     {
         if (policy is ExecutionPolicy.Parallel)
             return _empty;
@@ -25,7 +29,7 @@ internal sealed class PostgresPolicyFactory(IOutboxConnectionFactory connectionF
                 key: new PostgresAdvisoryLockKey(identifier, allowHashing: true),
                 connectionString: connectionFactory.GetConnectionString()));
 
-        return await @lock.AcquireAsync(cancellationToken: cancellationToken);
+        return await @lock.AcquireAsync(timeout: timeout, cancellationToken: cancellationToken);
     }
 
     private sealed class EmptyDisposable : IAsyncDisposable

@@ -8,6 +8,10 @@ namespace Yautbox.Runner.Infrastructure;
 
 internal sealed class DefaultPolicyFactory : IPolicyFactory
 {
-    public Task<IAsyncDisposable> CreateAsync(string identifier, ExecutionPolicy policy, CancellationToken cancellationToken)
+    public Task<IAsyncDisposable> CreateAsync(
+        string identifier,
+        ExecutionPolicy policy,
+        TimeSpan timeout,
+        CancellationToken cancellationToken)
         => Disposable.EmptyTask;
 }

@@ -94,6 +94,7 @@ public class DisabledWorkerTests : IAsyncLifetime
         public ScopeLifetime ScopeLifetime => ScopeLifetime.PerBatch;
         public DeletePolicy DeletePolicy => DeletePolicy.Safe;
         public TimeSpan FailureDelay => TimeSpan.FromSeconds(5);
+        public TimeSpan PolicyTimeout { get; set; } = TimeSpan.FromMinutes(10);
         public int WorkersCount => 4;
     }
 }

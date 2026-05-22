@@ -21,5 +21,6 @@ public sealed class CustomIdentifierRunnerOptions : IOutboxRunnerOptions
     public TimeSpan CleanupInterval { get; } = TimeSpan.FromDays(1);
     public ExecutionPolicy ExecutionPolicy { get; set; } = ExecutionPolicy.Parallel;
     public DeletePolicy CancellationPolicy { get; set; } = DeletePolicy.Safe;
+    public TimeSpan PolicyTimeout { get; set; } = TimeSpan.FromMinutes(10);
     public ScopeLifetime ScopeLifetime { get; } = ScopeLifetime.PerBatch;
 }

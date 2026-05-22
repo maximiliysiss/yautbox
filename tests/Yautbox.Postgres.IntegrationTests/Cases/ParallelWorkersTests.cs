@@ -94,6 +94,7 @@ public class ParallelWorkersTests
         public TimeSpan PollDelay => TimeSpan.FromSeconds(5);
         public int BufferSize => 3;
         public TimeSpan HandleTimeout => TimeSpan.FromMinutes(10);
+        public TimeSpan PolicyTimeout { get; set; } = TimeSpan.FromMinutes(10);
         public bool IsEnabled => true;
         public int WorkersCount => 5;
     }
