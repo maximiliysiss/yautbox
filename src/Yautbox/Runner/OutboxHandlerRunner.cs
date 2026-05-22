@@ -23,7 +23,7 @@ using Yautbox.Runner.Options;
 
 namespace Yautbox.Runner;
 
-internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService where THandler : IOutboxHandler<TPayload>
+internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService where THandler : class, IOutboxHandler<TPayload>
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly IInfrastructureReadinessWaiter _readinessWaiter;
@@ -102,11 +102,14 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
             {
                 try
                 {
-                    using var scope = _serviceProvider.CreateScope();
+                    using var sessionScope = _serviceProvider.CreateScope();
 
-                    var provider = scope.ServiceProvider.GetRequiredService<IOutboxProvider>();
-                    var handler = scope.ServiceProvider.GetRequiredService<THandler>();
-                    var policyFactory = scope.ServiceProvider.GetRequiredService<IPolicyFactory>();
+                    var provider = sessionScope.ServiceProvider.GetRequiredService<IOutboxProvider>();
+                    var policyFactory = sessionScope.ServiceProvider.GetRequiredService<IPolicyFactory>();
+
+                    var handler = options.ScopeLifetime is ScopeLifetime.PerSession
+                        ? sessionScope.ServiceProvider.GetRequiredService<THandler>()
+                        : null;
 
                     await HandleLoopAsync(identifier, provider, handler, options, policyFactory, stoppingToken);
 
@@ -133,7 +136,7 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
     private async Task HandleLoopAsync(
         string identifier,
         IOutboxProvider provider,
-        THandler handler,
+        THandler? handler,
         IOutboxRunnerOptions options,
         IPolicyFactory policyFactory,
         CancellationToken cancellationToken)
@@ -146,7 +149,7 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
     private async Task<bool> TryProcessingMessagesAsync(
         string identifier,
         IOutboxProvider provider,
-        THandler handler,
+        THandler? handler,
         IOutboxRunnerOptions options,
         IPolicyFactory policyFactory,
         CancellationToken cancellationToken)
@@ -154,6 +157,12 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
         await using var _ = await policyFactory.CreateAsync(identifier, options.ExecutionPolicy, cancellationToken);
 
         var startTimestamp = Stopwatch.GetTimestamp();
+
+        using var groupScope = _serviceProvider.CreateScope();
+
+        handler = options.ScopeLifetime is ScopeLifetime.PerGroup
+            ? groupScope.ServiceProvider.GetRequiredService<THandler>()
+            : handler;
 
         var outboxMessages = await provider.GetAsync<TPayload>(
             identifier: identifier,
@@ -223,9 +232,13 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
 
             try
             {
+                using var batchScope = _serviceProvider.CreateScope();
+
                 var startTimestamp = Stopwatch.GetTimestamp();
 
-                await handler.HandleAsync(
+                var localHandler = handler ?? batchScope.ServiceProvider.GetRequiredService<THandler>();
+
+                await localHandler.HandleAsync(
                     messages: [.. messages.Select(c => MapMessage(c, context))],
                     cancellationToken: stoppingToken);
 

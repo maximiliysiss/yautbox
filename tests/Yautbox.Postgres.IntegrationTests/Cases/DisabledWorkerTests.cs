@@ -88,8 +88,10 @@ public class DisabledWorkerTests : IAsyncLifetime
         public bool IsEnabled => false;
         public TimeSpan Visibility => TimeSpan.FromMinutes(10);
         public TimeSpan? BackupInterval => null;
+        public TimeSpan CleanupInterval => TimeSpan.FromMilliseconds(200);
         public ExecutionPolicy ExecutionPolicy => ExecutionPolicy.Parallel;
         public DeletePolicy CancellationPolicy => DeletePolicy.Safe;
+        public ScopeLifetime ScopeLifetime => ScopeLifetime.PerBatch;
         public DeletePolicy DeletePolicy => DeletePolicy.Safe;
         public TimeSpan FailureDelay => TimeSpan.FromSeconds(5);
         public int WorkersCount => 4;

@@ -17,6 +17,7 @@ using Yautbox.Postgres.Options;
 using Yautbox.Runner.Options;
 using Yautbox.Services;
 using Microsoft.Extensions.Logging;
+
 namespace Yautbox.Postgres.IntegrationTests.Cases;
 
 [Collection(nameof(IntegrationTestCollection))]
@@ -64,6 +65,7 @@ public class ParallelWorkersTests
     public sealed class OutboxHandleTestsHandler : IOutboxHandler<ParallelWorkerEvent>
     {
         private readonly ILogger<OutboxHandleTestsHandler> _logger;
+
         public OutboxHandleTestsHandler(ILogger<OutboxHandleTestsHandler> logger)
         {
             _logger = logger;
@@ -82,8 +84,10 @@ public class ParallelWorkersTests
     {
         public TimeSpan Visibility => TimeSpan.FromMinutes(10);
         public TimeSpan? BackupInterval => null;
+        public TimeSpan CleanupInterval => TimeSpan.FromMilliseconds(200);
         public ExecutionPolicy ExecutionPolicy => ExecutionPolicy.Parallel;
         public DeletePolicy CancellationPolicy => DeletePolicy.Safe;
+        public ScopeLifetime ScopeLifetime => ScopeLifetime.PerBatch;
         public DeletePolicy DeletePolicy => DeletePolicy.Safe;
         public TimeSpan FailureDelay => TimeSpan.FromSeconds(5);
         public string? Identifier => null;

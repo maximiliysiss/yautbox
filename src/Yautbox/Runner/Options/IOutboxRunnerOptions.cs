@@ -65,6 +65,11 @@ public interface IOutboxRunnerOptions
     TimeSpan? BackupInterval { get; }
 
     /// <summary>
+    /// Interval for cleanup old-handled messages. Default is 1 day
+    /// </summary>
+    TimeSpan CleanupInterval { get; }
+
+    /// <summary>
     /// Execution policy for outbox handlers. Default is parallel
     /// </summary>
     ExecutionPolicy ExecutionPolicy { get; }
@@ -73,4 +78,9 @@ public interface IOutboxRunnerOptions
     /// Cancellation policy for outbox handlers. Default is safe-delete
     /// </summary>
     DeletePolicy CancellationPolicy { get; }
+
+    /// <summary>
+    /// Lifetime of the outbox handler scope. Default is per-batch
+    /// </summary>
+    ScopeLifetime ScopeLifetime { get; }
 }

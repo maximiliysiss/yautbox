@@ -16,7 +16,7 @@ public class OutboxRegistryOptionsTests
         // Arrange
         var options = new OutboxRegistryOptions();
         var monitor = Substitute.For<Microsoft.Extensions.Options.IOptionsMonitor<IOutboxRunnerOptions>>();
-        monitor.CurrentValue.Returns(new DefaultRunnerOptions { Identifier = "custom-id" });
+        monitor.CurrentValue.Returns(new InnerDefaultRunnerOptions { Identifier = "custom-id" });
 
         // Act
         options.Register<Message>(monitor);
@@ -31,7 +31,7 @@ public class OutboxRegistryOptionsTests
         // Arrange
         var options = new OutboxRegistryOptions();
         var monitor = Substitute.For<Microsoft.Extensions.Options.IOptionsMonitor<IOutboxRunnerOptions>>();
-        monitor.CurrentValue.Returns(new DefaultRunnerOptions { Identifier = null });
+        monitor.CurrentValue.Returns(new InnerDefaultRunnerOptions { Identifier = null });
         var expected = typeof(Message).GetVersionFreeFullName();
 
         // Act
@@ -47,7 +47,7 @@ public class OutboxRegistryOptionsTests
         // Arrange
         var options = new OutboxRegistryOptions();
         var monitor = Substitute.For<Microsoft.Extensions.Options.IOptionsMonitor<IOutboxRunnerOptions>>();
-        monitor.CurrentValue.Returns(new DefaultRunnerOptions { Identifier = "custom-id" });
+        monitor.CurrentValue.Returns(new InnerDefaultRunnerOptions { Identifier = "custom-id" });
 
         // Act
         var act = () =>

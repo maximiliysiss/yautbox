@@ -16,6 +16,8 @@ public sealed class TestRunnerOptions : IOutboxRunnerOptions
     public TimeSpan FailureDelay { get; set; } = TimeSpan.FromMilliseconds(100);
     public TimeSpan Visibility { get; set; } = TimeSpan.FromMinutes(10);
     public TimeSpan? BackupInterval { get; set; }
+    public TimeSpan CleanupInterval { get; } = TimeSpan.FromMilliseconds(200);
     public ExecutionPolicy ExecutionPolicy { get; set; } = ExecutionPolicy.Parallel;
     public DeletePolicy CancellationPolicy { get; set; } = DeletePolicy.Safe;
+    public ScopeLifetime ScopeLifetime { get; } = ScopeLifetime.PerBatch;
 }

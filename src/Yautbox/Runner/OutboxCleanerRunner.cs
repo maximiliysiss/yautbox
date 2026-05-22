@@ -107,7 +107,7 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
 
                 _logger.OutboxCleanupFinished(identifier, elapsed);
 
-                await Task.Delay(options.BackupInterval.Value, cancellationToken);
+                await Task.Delay(options.CleanupInterval, cancellationToken);
             }
             catch (Exception ex) when (ex.IsCancel() && cancellationToken.IsCancellationRequested)
             {
