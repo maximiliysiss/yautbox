@@ -10,8 +10,12 @@ internal sealed class LimitedConcurrentDeque<T>(int capacity)
 
     public bool TryPopLeft(out T obj)
     {
-        _semaphore.Release();
-        return _deque.TryPopLeft(out obj);
+        var isPop = _deque.TryPopLeft(out obj);
+
+        if (isPop)
+            _semaphore.Release();
+
+        return isPop;
     }
 
     public void PushLeft(T obj) => _deque.PushLeft(obj);

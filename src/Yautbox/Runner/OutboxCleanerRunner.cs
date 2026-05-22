@@ -63,7 +63,6 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
         Action? invalidAction = options switch
         {
             { IsEnabled: false } => () => _logger.DisableOutbox(ServiceName),
-            { BackupInterval: null } => () => _logger.OutboxCleanupIsDisabled(ServiceName),
             _ when options.Validate() is ValidationResult.FailureValidationResult r
                 => () => _logger.InvalidOutboxOptions(ServiceName, r.ErrorMessage),
             _ => null,

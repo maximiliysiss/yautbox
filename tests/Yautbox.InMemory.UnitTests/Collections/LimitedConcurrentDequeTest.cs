@@ -82,4 +82,26 @@ public class LimitedConcurrentDequeTest
         result.Should().BeFalse();
         value.Should().BeNull();
     }
+
+    [Fact]
+    public async Task TryPopLeft_ShouldNotIncreaseCapacity_WhenEmpty()
+    {
+        // Arrange
+        var deque = new LimitedConcurrentDeque<int>(capacity: 1);
+
+        // Act
+        deque.TryPopLeft(out _).Should().BeFalse();
+
+        deque.PushRight(1);
+
+        var secondPush = Task.Run(() => deque.PushRight(2));
+        var completed = await Task.WhenAny(secondPush, Task.Delay(100));
+
+        // Assert
+        completed.Should().NotBeSameAs(secondPush);
+
+        deque.TryPopLeft(out _).Should().BeTrue();
+
+        await secondPush;
+    }
 }

@@ -21,7 +21,7 @@ internal sealed class OutboxRegistryOptions
         if (!Identifiers.TryAdd(type, monitor.CurrentValue.Identifier ?? type.GetVersionFreeFullName()))
             throw new HandlerAlreadyAddedException(type);
 
-        if (!CancellingPolicies.TryAdd(type, monitor.CurrentValue.DeletePolicy))
+        if (!CancellingPolicies.TryAdd(type, monitor.CurrentValue.CancellationPolicy))
             throw new HandlerAlreadyAddedException(type);
     }
 }
