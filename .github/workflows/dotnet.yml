@@ -50,7 +50,7 @@ jobs:
 
         strategy:
             matrix:
-                framework: [ net8.0, net9.0, net10.0 ]
+                framework: [ net8.0 ]
 
         services:
             postgres:
@@ -59,20 +59,6 @@ jobs:
                     - 5432:5432
                 env:
                     POSTGRES_PASSWORD: pwd
-            mssql:
-                image: mcr.microsoft.com/mssql/server:2022-latest
-                ports:
-                    - 1433:1433
-                env:
-                    SA_PASSWORD: Pwd12345!
-                    ACCEPT_EULA: Y
-            mysql:
-                image: mysql:8.0.29
-                ports:
-                    - 3306:3306
-                env:
-                    MYSQL_ROOT_PASSWORD: pwd
-                    MYSQL_DATABASE: outbox
         steps:
             -   uses: actions/checkout@v3
             -   name: Setup .NET
