@@ -117,11 +117,14 @@ public class OutboxRepositoryTests : IAsyncLifetime
             Id = id,
             Type = tableRow.Type,
             IsDeleted = true,
+            ScheduledAt = (DateTimeOffset?)null,
+            DeletedAt = (DateTimeOffset?)null,
         };
 
         tableRows
             .Should().ContainSingle()
-            .Which.Should().BeEquivalentTo(expectedMessage);
+            .Which.Should().BeEquivalentTo(expectedMessage, opt => opt.Excluding(c => c.DeletedAt)).And
+            .BeOfType<OutboxDbHelper.TableRow>().Which.DeletedAt.Should().NotBeNull();
     }
 
     [Fact]
@@ -432,15 +435,59 @@ public class OutboxRepositoryTests : IAsyncLifetime
 
         var oldRecord = faker
             .RuleFor(c => c.CreatedAt, now.AddDays(-1))
+            .RuleFor(c => c.DeletedAt, now.AddDays(-1))
             .Generate(10);
 
         var newRecord = faker
             .RuleFor(c => c.CreatedAt, now.AddMinutes(-1))
+            .RuleFor(c => c.DeletedAt, now.AddMinutes(-1))
             .Generate();
 
         foreach (var tableRow in oldRecord)
             await _outboxDbHelper.AddAsync(tableRow);
 
+        _ = await _outboxDbHelper.AddAsync(newRecord);
+
+        var repository = Create();
+
+        // Act
+        await repository.CleanAsync(identifier, now.AddHours(-1), CancellationToken.None);
+
+        // Assert
+        var tableRows = await _outboxDbHelper
+            .GetAsync<TestEvent>(identifier)
+            .ToArrayAsync();
+
+        tableRows
+            .Should().ContainSingle()
+            .Which.Id.Should().Be(newRecord.Id);
+    }
+
+    [Theory, AutoData]
+    public async Task CleanData_ShouldCleanLegacyDeletedData_WhenDeletedAtIsNull(TestEvent @event)
+    {
+        // Arrange
+        var identifier = $"{nameof(CleanData_ShouldCleanLegacyDeletedData_WhenDeletedAtIsNull)}_{RuntimeInformation.FrameworkDescription}_{Guid.NewGuid()}";
+
+        var now = DateTimeOffset.UtcNow;
+
+        var oldRecord = OutboxDbHelper.TableRow
+            .GetFaker(identifier, JsonSerializer.Serialize(@event))
+            .RuleFor(c => c.CreatedAt, now.AddDays(-1))
+            .RuleFor(c => c.DeletedAt, (DateTimeOffset?)null)
+            .RuleFor(c => c.ScheduledAt, (DateTimeOffset?)null)
+            .RuleFor(c => c.IsDeleted, true)
+            .Generate();
+
+        var newRecord = OutboxDbHelper.TableRow
+            .GetFaker(identifier, JsonSerializer.Serialize(@event))
+            .RuleFor(c => c.CreatedAt, now.AddMinutes(-1))
+            .RuleFor(c => c.DeletedAt, (DateTimeOffset?)null)
+            .RuleFor(c => c.ScheduledAt, (DateTimeOffset?)null)
+            .RuleFor(c => c.IsDeleted, true)
+            .Generate();
+
+        _ = await _outboxDbHelper.AddAsync(oldRecord);
         _ = await _outboxDbHelper.AddAsync(newRecord);
 
         var repository = Create();

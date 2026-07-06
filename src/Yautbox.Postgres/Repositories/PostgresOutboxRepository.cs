@@ -186,7 +186,9 @@ RETURNING id;
         var safeDeleteQuery = @$"
 UPDATE {_options.SchemaName}.outbox_messages
 SET is_deleted = true,
-    locker = NULL
+    locker = NULL,
+    scheduled_at = NULL,
+    deleted_at = :now
 WHERE id = ANY(:ids) AND NOT is_deleted;
 ";
 
@@ -208,7 +210,8 @@ WHERE id = ANY(:ids) AND NOT is_deleted;
         {
             Parameters =
             {
-                { "ids", ids.Select(c => c.Value).ToArray() }
+                { "ids", ids.Select(c => c.Value).ToArray() },
+                { "now", _dateTimeProvider.GetNow() }
             }
         };
 
@@ -262,7 +265,7 @@ WHERE om.id = t.id AND NOT is_deleted;
 WITH deleted AS (
     SELECT id
     FROM {_options.SchemaName}.outbox_messages_deleted
-    WHERE type = :type AND created_at <= :olderThan
+    WHERE type = :type AND COALESCE(deleted_at, created_at) <= :olderThan
     LIMIT :limit
     FOR UPDATE SKIP LOCKED
 )

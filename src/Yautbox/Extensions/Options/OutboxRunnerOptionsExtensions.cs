@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Yautbox.Runner.Options;
 
 namespace Yautbox.Extensions.Options;
@@ -27,6 +28,12 @@ internal static class OutboxRunnerOptionsExtensions
 
         if (options.FailureDelay <= TimeSpan.Zero)
             return new ValidationResult.FailureValidationResult("Failure delay cannot be zero or negative");
+
+        if (options.RetryCount < 0)
+            return new ValidationResult.FailureValidationResult("Retry count cannot be negative");
+
+        if (options.RetryDelays.Any(delay => delay < TimeSpan.Zero))
+            return new ValidationResult.FailureValidationResult("Retry delays cannot be negative");
 
         if (options.BackupInterval is not null && options.BackupInterval <= TimeSpan.Zero)
             return new ValidationResult.FailureValidationResult("Backup interval cannot be zero or negative");

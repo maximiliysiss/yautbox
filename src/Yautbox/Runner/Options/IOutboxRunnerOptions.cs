@@ -54,6 +54,16 @@ public interface IOutboxRunnerOptions
     TimeSpan FailureDelay { get; }
 
     /// <summary>
+    /// Gets the maximum number of retries for one message. A <see langword="null"/> value means infinite retries.
+    /// </summary>
+    int? RetryCount => null;
+
+    /// <summary>
+    /// Gets retry delays by attempt. When the current attempt is greater than the array length, the last delay is reused.
+    /// </summary>
+    TimeSpan[] RetryDelays => [];
+
+    /// <summary>
     /// Gets the visibility timeout for messages being processed. The default is 1 hour.
     /// </summary>
     TimeSpan Visibility { get; }

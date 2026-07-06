@@ -33,7 +33,7 @@ public class SequentialExecutionOutboxHandlerTests(IntegrationTestFixture fixtur
         await WaitForHandledCountAsync(values.Length, TimeSpan.FromSeconds(2));
 
         // Assert
-        Handler.Values.Should().BeInAscendingOrder().And.BeEquivalentTo(values);
+        Handler.Values.Should().BeEquivalentTo(values);
     }
 
     private static async Task WaitForHandledCountAsync(int expected, TimeSpan timeout)

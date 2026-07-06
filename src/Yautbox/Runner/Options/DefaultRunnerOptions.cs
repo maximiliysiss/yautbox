@@ -13,6 +13,8 @@ internal sealed class DefaultRunnerOptions : IOutboxRunnerOptions
     public int PerBufferCount => 1000;
     public DeletePolicy DeletePolicy => DeletePolicy.Safe;
     public TimeSpan FailureDelay { get; } = TimeSpan.FromSeconds(2);
+    public int? RetryCount => null;
+    public TimeSpan[] RetryDelays => [];
     public TimeSpan Visibility { get; } = TimeSpan.FromHours(1);
     public TimeSpan? BackupInterval => null;
     public TimeSpan CleanupInterval { get; } = TimeSpan.FromDays(1);

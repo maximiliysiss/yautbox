@@ -37,7 +37,8 @@ internal sealed class OutboxDbHelper : IDbHelper, ITracker<OutboxMessageId>
         identifier ??= $"{RuntimeInformation.FrameworkDescription}_{typeof(T).GetVersionFreeFullName()}";
 
         var query = @$"
-SELECT id, type, payload, created_at AS createdAt, attempt, scheduled_at AS scheduledAt, is_deleted AS isDeleted, locker
+SELECT id, type, payload, created_at AS createdAt, attempt, scheduled_at AS scheduledAt, is_deleted AS isDeleted, locker,
+       deleted_at AS deletedAt
 FROM {_options}.outbox_messages
 WHERE (cardinality(:ids) = 0 OR id = ANY(:ids)) AND type = :type
 ";
@@ -67,6 +68,7 @@ WHERE (cardinality(:ids) = 0 OR id = ANY(:ids)) AND type = :type
                 IsDeleted = reader.GetBoolean("isDeleted"),
                 Payload = reader.GetString("payload"),
                 ScheduledAt = reader.GetFieldValue<DateTimeOffset?>("scheduledAt"),
+                DeletedAt = reader.GetFieldValue<DateTimeOffset?>("deletedAt"),
                 Type = reader.GetString("type"),
             };
         }
@@ -75,8 +77,8 @@ WHERE (cardinality(:ids) = 0 OR id = ANY(:ids)) AND type = :type
     public async Task<long> AddAsync(TableRow row)
     {
         var query = @$"
-INSERT INTO {_options}.outbox_messages(type, payload, created_at, attempt, scheduled_at, is_deleted, locker)
-VALUES (:type, :payload, :createdAt, :attempt, :scheduledAt, :isDeleted, :locker)
+INSERT INTO {_options}.outbox_messages(type, payload, created_at, attempt, scheduled_at, is_deleted, locker, deleted_at)
+VALUES (:type, :payload, :createdAt, :attempt, :scheduledAt, :isDeleted, :locker, :deletedAt)
 RETURNING id
 ";
 
@@ -93,6 +95,7 @@ RETURNING id
                 { "scheduledAt", row.ScheduledAt },
                 { "isDeleted", row.IsDeleted },
                 { "locker", row.Locker },
+                { "deletedAt", row.DeletedAt },
             }
         };
 
@@ -145,6 +148,7 @@ WHERE id = ANY(:ids)
             .RuleFor(c => c.ScheduledAt, (DateTimeOffset?)null)
             .RuleFor(c => c.Attempt, 0)
             .RuleFor(c => c.Locker, (DateTimeOffset?)null)
+            .RuleFor(c => c.DeletedAt, (DateTimeOffset?)null)
             .RuleFor(c => c.IsDeleted, false);
 
         public static TableRow GetDefault(string type, string? payload = null) => GetFaker(type, payload).Generate();
@@ -157,5 +161,6 @@ WHERE id = ANY(:ids)
         public DateTimeOffset? ScheduledAt { get; set; }
         public bool IsDeleted { get; set; }
         public DateTimeOffset? Locker { get; set; }
+        public DateTimeOffset? DeletedAt { get; set; }
     }
 }

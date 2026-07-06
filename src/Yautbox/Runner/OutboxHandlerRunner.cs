@@ -172,67 +172,92 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
             identifier: identifier,
             count: options.BufferSize,
             visibility: options.Visibility,
-            cancellationToken: cancellationToken);
+            cancellationToken: CancellationToken.None);
 
         var elapsed = Stopwatch.GetElapsedTime(startTimestamp);
 
-        await _metricsHandler.ReadInAsync(identifier, elapsed, cancellationToken);
+        try
+        {
+            await _metricsHandler.ReadInAsync(identifier, elapsed, cancellationToken);
 
-        if (outboxMessages.Count is 0)
+            if (outboxMessages.Count is 0)
+                return false;
+
+            _logger.OutboxMessagesFetched(identifier, outboxMessages.Count, elapsed);
+
+            using var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cancellationTokenSource.CancelAfter(options.HandleTimeout);
+
+            var cycleCancellationToken = cancellationTokenSource.Token;
+
+            var loopTasks = outboxMessages
+                .Chunk(options.PerBufferCount)
+                .Select(g => LoopAsync(g, cycleCancellationToken))
+                .ToArray();
+
+            if (loopTasks is [])
+                return false;
+
+            var contexts = await Task.WhenAll(loopTasks);
+
+            var failedCount = contexts.Count(c => c.IsFailed);
+            if (failedCount is not 0)
+                await _metricsHandler.ErrorsAsync(identifier, failedCount, cancellationToken);
+
+            var toRetryMessages = contexts
+                .SelectMany(c => c.Retries.Select(MapRetry))
+                .ToArray();
+
+            var toDeleteMessages = contexts
+                .SelectMany(c => c.Success)
+                .ToArray();
+
+            var toExceededMessages = contexts
+                .SelectMany(c => c.RetryExceeded)
+                .ToArray();
+
+            await provider.RetryAsync(
+                identifier: identifier,
+                messages: toRetryMessages,
+                cancellationToken: cancellationToken);
+
+            await provider.DeleteAsync(
+                identifier: identifier,
+                ids: [.. toDeleteMessages, .. toExceededMessages],
+                policy: options.DeletePolicy,
+                cancellationToken: cancellationToken);
+
+            await _metricsHandler.RetriedAsync(identifier, toRetryMessages.Length, cancellationToken);
+            await _metricsHandler.DeletedAsync(identifier, toDeleteMessages.Length + toExceededMessages.Length, cancellationToken);
+
+            _logger.OutboxMessagesProcessed(
+                identifier: identifier,
+                fetchedCount: outboxMessages.Count,
+                retryCount: toRetryMessages.Length,
+                deleteCount: toDeleteMessages.Length + toExceededMessages.Length);
+
+            return contexts.Any(c => c.IsSuccess);
+        }
+        catch (Exception ex) when (ex.IsCancel() && cancellationToken.IsCancellationRequested)
+        {
+            if (outboxMessages.Count is not 0)
+            {
+                _logger.OutboxRetrying(identifier, outboxMessages.Count);
+
+                await provider.RetryAsync(
+                    identifier: identifier,
+                    messages: outboxMessages,
+                    cancellationToken: CancellationToken.None);
+            }
+
             return false;
-
-        _logger.OutboxMessagesFetched(identifier, outboxMessages.Count, elapsed);
-
-        using var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        cancellationTokenSource.CancelAfter(options.HandleTimeout);
-
-        var cycleCancellationToken = cancellationTokenSource.Token;
-
-        var loopTasks = outboxMessages
-            .Chunk(options.PerBufferCount)
-            .Select(g => LoopAsync(g, cycleCancellationToken))
-            .ToArray();
-
-        if (loopTasks is [])
-            return false;
-
-        var contexts = await Task.WhenAll(loopTasks);
-
-        var failedCount = contexts.Count(c => c.IsFailed);
-        if (failedCount is not 0)
-            await _metricsHandler.ErrorsAsync(identifier, failedCount, cancellationToken);
-
-        var toRetryMessages = contexts
-            .SelectMany(c => c.Retries.Select(MapRetry))
-            .ToArray();
-
-        var toDeleteMessages = contexts
-            .SelectMany(c => c.Success)
-            .ToArray();
-
-        await provider.RetryAsync(
-            identifier: identifier,
-            messages: toRetryMessages,
-            cancellationToken: cancellationToken);
-
-        await provider.DeleteAsync(
-            identifier: identifier,
-            ids: toDeleteMessages,
-            policy: options.DeletePolicy,
-            cancellationToken: cancellationToken);
-
-        await _metricsHandler.RetriedAsync(identifier, toRetryMessages.Length, cancellationToken);
-        await _metricsHandler.DeletedAsync(identifier, toDeleteMessages.Length, cancellationToken);
-
-        _logger.OutboxMessagesProcessed(identifier, outboxMessages.Count, toRetryMessages.Length, toDeleteMessages.Length);
-
-        return contexts.Any(c => c.IsSuccess);
+        }
 
         async Task<OutboxRunnerContext<TPayload>> LoopAsync(
             IReadOnlyCollection<Entities.OutboxMessage<TPayload>> messages,
             CancellationToken stoppingToken)
         {
-            var context = new OutboxRunnerContext<TPayload>(_dateTimeProvider, messages);
+            var context = new OutboxRunnerContext<TPayload>(_dateTimeProvider, messages, options);
 
             try
             {
@@ -265,7 +290,7 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
 
                 _logger.ErrorProcessingMessages(type.FullName ?? type.Name, ex);
 
-                context.Fail(options.FailureDelay);
+                context.Fail();
             }
 
             return context;

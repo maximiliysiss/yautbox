@@ -52,4 +52,7 @@ internal static partial class LoggerExtensions
 
     [LoggerMessage(16, LogLevel.Debug, "Finished outbox cleanup for {identifier} in {elapsed}.")]
     public static partial void OutboxCleanupFinished(this ILogger logger, string identifier, TimeSpan elapsed);
+
+    [LoggerMessage(17, LogLevel.Information, "Outbox retrying {count} message(s) for {identifier} because of restarting.")]
+    public static partial void OutboxRetrying(this ILogger logger, string identifier, int count);
 }
