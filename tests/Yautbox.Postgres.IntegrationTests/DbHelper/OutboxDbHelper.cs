@@ -37,7 +37,7 @@ internal sealed class OutboxDbHelper : IDbHelper, ITracker<OutboxMessageId>
         identifier ??= $"{RuntimeInformation.FrameworkDescription}_{typeof(T).GetVersionFreeFullName()}";
 
         var query = @$"
-SELECT id, type, payload, created_at AS createdAt, attempt, scheduled_at AS scheduledAt, is_deleted AS isDeleted, locker,
+SELECT id, type, payload, created_at AS createdAt, attempt, NULLIF(scheduled_at, '-infinity') AS scheduledAt, is_deleted AS isDeleted, locker,
        deleted_at AS deletedAt
 FROM {_options}.outbox_messages
 WHERE (cardinality(:ids) = 0 OR id = ANY(:ids)) AND type = :type
@@ -78,7 +78,7 @@ WHERE (cardinality(:ids) = 0 OR id = ANY(:ids)) AND type = :type
     {
         var query = @$"
 INSERT INTO {_options}.outbox_messages(type, payload, created_at, attempt, scheduled_at, is_deleted, locker, deleted_at)
-VALUES (:type, :payload, :createdAt, :attempt, :scheduledAt, :isDeleted, :locker, :deletedAt)
+VALUES (:type, :payload, :createdAt, :attempt, COALESCE(:scheduledAt, '-infinity'), :isDeleted, :locker, :deletedAt)
 RETURNING id
 ";
 

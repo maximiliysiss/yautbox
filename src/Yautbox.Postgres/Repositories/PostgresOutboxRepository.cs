@@ -58,7 +58,7 @@ FROM (
     SELECT id
     FROM {_options.SchemaName}.outbox_messages_active
     WHERE type = :type
-      AND (scheduled_at IS NULL OR scheduled_at <= :now)
+      AND scheduled_at <= :now
       AND (locker IS NULL OR locker <= :now)
     ORDER BY id
     LIMIT :count
@@ -66,7 +66,7 @@ FROM (
 ) s
 WHERE om.id = s.id
 RETURNING om.id, om.payload, om.attempt,
-    om.scheduled_at AS scheduledAt, om.created_at AS createdAt;
+    NULLIF(om.scheduled_at, '-infinity') AS scheduledAt, om.created_at AS createdAt;
 ";
 
         var now = _dateTimeProvider.GetNow();
@@ -135,7 +135,7 @@ RETURNING om.id, om.payload, om.attempt,
 
         var query = @$"
 INSERT INTO {_options.SchemaName}.outbox_messages(type, payload, created_at, attempt, scheduled_at, is_deleted)
-SELECT :type, payload, created_at, attempt, scheduled_at, false
+SELECT :type, payload, created_at, attempt, COALESCE(scheduled_at, '-infinity'), false
 FROM unnest(:payloads, :attempts, :scheduled_ats, :created_ats) AS t(payload, attempt, scheduled_at, created_at)
 RETURNING id;
 ";
@@ -187,7 +187,6 @@ RETURNING id;
 UPDATE {_options.SchemaName}.outbox_messages
 SET is_deleted = true,
     locker = NULL,
-    scheduled_at = NULL,
     deleted_at = :now
 WHERE id = ANY(:ids) AND NOT is_deleted;
 ";
