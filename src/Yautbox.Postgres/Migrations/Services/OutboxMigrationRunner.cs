@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentMigrator.Runner;
@@ -20,6 +21,7 @@ namespace Yautbox.Postgres.Migrations.Services;
 internal sealed class OutboxMigrationRunner : IOutboxMigrationRunner
 {
     private static readonly TimeSpan _defaultTimeout = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan _lockRetryInterval = TimeSpan.FromMilliseconds(100);
 
     private readonly MigrationOptions _options;
 
@@ -43,7 +45,19 @@ internal sealed class OutboxMigrationRunner : IOutboxMigrationRunner
             key: new PostgresAdvisoryLockKey(nameof(OutboxMigrationRunner), allowHashing: true),
             connectionString: _connectionFactory.GetConnectionString());
 
-        await using var _ = await @lock.AcquireAsync(_defaultTimeout, cancellationToken: cancellationToken);
+        var lockStarted = Stopwatch.GetTimestamp();
+        var lockHandle = await @lock.TryAcquireAsync(TimeSpan.Zero, cancellationToken);
+
+        while (lockHandle is null)
+        {
+            if (Stopwatch.GetElapsedTime(lockStarted) >= _defaultTimeout)
+                throw new TimeoutException($"Timed out waiting to acquire the outbox migration lock after {_defaultTimeout}.");
+
+            await Task.Delay(_lockRetryInterval, cancellationToken);
+            lockHandle = await @lock.TryAcquireAsync(TimeSpan.Zero, cancellationToken);
+        }
+
+        await using var _ = lockHandle;
 
         // Create scope
         await using var serviceProvider = new ServiceCollection()
