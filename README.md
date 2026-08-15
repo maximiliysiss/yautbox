@@ -3,7 +3,7 @@
 [![.NET](https://github.com/maximiliysiss/yautbox/actions/workflows/dotnet.yml/badge.svg?branch=master&event=push)](https://github.com/maximiliysiss/yautbox/actions/workflows/dotnet.yml)
 [![NuGet](https://img.shields.io/nuget/v/Yautbox)](https://www.nuget.org/packages/Yautbox/)
 
-[Release notes](releasenotes/1.4.0.md)
+[Release notes](releasenotes/README.md)
 
 Yautbox is a lightweight .NET outbox library. It lets you enqueue messages during application work and process them
 later with background handlers. The core package is storage-agnostic; choose the in-memory or PostgreSQL provider, or
