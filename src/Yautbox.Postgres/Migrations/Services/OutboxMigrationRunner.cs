@@ -46,8 +46,6 @@ internal sealed class OutboxMigrationRunner : IOutboxMigrationRunner
         await using var _ = await @lock.AcquireAsync(_defaultTimeout, cancellationToken: cancellationToken);
 
         // Create scope
-        var assembly = typeof(InitialMigration).Assembly;
-
         await using var serviceProvider = new ServiceCollection()
             .AddScoped<IVersionTableMetaData, VersionTableMetaData>()
             .AddScoped<IVersionTableMetaDataAccessor, VersionTableMetaDataAccessor>()
