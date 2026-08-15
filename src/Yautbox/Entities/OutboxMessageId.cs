@@ -5,5 +5,5 @@ namespace Yautbox.Entities;
 /// </summary>
 [StronglyTypedId(
     backingType: StronglyTypedIdBackingType.Long,
-    jsonConverter: StronglyTypedIdJsonConverter.SystemTextJson | StronglyTypedIdJsonConverter.SystemTextJson)]
+    jsonConverter: StronglyTypedIdJsonConverter.SystemTextJson)]
 public readonly partial struct OutboxMessageId;

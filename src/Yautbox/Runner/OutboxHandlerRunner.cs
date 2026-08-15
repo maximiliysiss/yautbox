@@ -20,6 +20,7 @@ using Yautbox.Registy;
 using Yautbox.Runner.Extensions;
 using Yautbox.Runner.Infrastructure;
 using Yautbox.Runner.Options;
+using Yautbox.Tracing;
 
 namespace Yautbox.Runner;
 
@@ -29,6 +30,7 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
     private readonly IInfrastructureReadinessWaiter _readinessWaiter;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IMetricsHandler _metricsHandler;
+    private readonly IOutboxTracer _tracer;
 
     private readonly IOptionsMonitor<IOutboxRunnerOptions> _options;
 
@@ -40,7 +42,8 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
         IInfrastructureReadinessWaiter readinessWaiter,
         ILogger<OutboxHandlerRunner<THandler, TPayload>> logger,
         IDateTimeProvider dateTimeProvider,
-        IMetricsHandler metricsHandler)
+        IMetricsHandler metricsHandler,
+        IOutboxTracer tracer)
         : base(logger)
     {
         _serviceProvider = serviceProvider;
@@ -48,6 +51,7 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
         _logger = logger;
         _dateTimeProvider = dateTimeProvider;
         _metricsHandler = metricsHandler;
+        _tracer = tracer;
         _options = options;
 
         ServiceName = $"{base.ServiceName}[{typeof(TPayload).FullName},{typeof(THandler).FullName}]";
@@ -216,16 +220,30 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
                 .SelectMany(c => c.RetryExceeded)
                 .ToArray();
 
-            await provider.RetryAsync(
-                identifier: identifier,
-                messages: toRetryMessages,
-                cancellationToken: cancellationToken);
+            using (var persistSpan = _tracer.StartPersist(identifier))
+            {
+                persistSpan.SetTag("retry.count", toRetryMessages.Length);
+                persistSpan.SetTag("delete.count", toDeleteMessages.Length + toExceededMessages.Length);
 
-            await provider.DeleteAsync(
-                identifier: identifier,
-                ids: [.. toDeleteMessages, .. toExceededMessages],
-                policy: options.DeletePolicy,
-                cancellationToken: cancellationToken);
+                try
+                {
+                    await provider.RetryAsync(
+                        identifier: identifier,
+                        messages: toRetryMessages,
+                        cancellationToken: cancellationToken);
+
+                    await provider.DeleteAsync(
+                        identifier: identifier,
+                        ids: [.. toDeleteMessages, .. toExceededMessages],
+                        policy: options.DeletePolicy,
+                        cancellationToken: cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    persistSpan.SetFailed(ex);
+                    throw;
+                }
+            }
 
             await _metricsHandler.RetriedAsync(identifier, toRetryMessages.Length, cancellationToken);
             await _metricsHandler.DeletedAsync(identifier, toDeleteMessages.Length + toExceededMessages.Length, cancellationToken);
@@ -258,6 +276,7 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
             CancellationToken stoppingToken)
         {
             var context = new OutboxRunnerContext<TPayload>(_dateTimeProvider, messages, options);
+            using var handleSpan = _tracer.StartHandle(identifier, messages.Count);
 
             try
             {
@@ -286,6 +305,7 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
             }
             catch (Exception ex)
             {
+                handleSpan.SetFailed(ex);
                 var type = typeof(TPayload);
 
                 _logger.ErrorProcessingMessages(type.FullName ?? type.Name, ex);

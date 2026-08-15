@@ -17,6 +17,7 @@ using Yautbox.Provider;
 using Yautbox.Registy;
 using Yautbox.Runner.Extensions;
 using Yautbox.Runner.Options;
+using Yautbox.Tracing;
 
 namespace Yautbox.Runner;
 
@@ -26,6 +27,7 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
     private readonly IInfrastructureReadinessWaiter _readinessWaiter;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IMetricsHandler _metricsHandler;
+    private readonly IOutboxTracer _tracer;
 
     private readonly ILogger<OutboxCleanerRunner<THandler, TPayload>> _logger;
 
@@ -37,7 +39,8 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
         IServiceProvider serviceProvider,
         IInfrastructureReadinessWaiter readinessWaiter,
         IDateTimeProvider dateTimeProvider,
-        IMetricsHandler metricsHandler) : base(logger)
+        IMetricsHandler metricsHandler,
+        IOutboxTracer tracer) : base(logger)
     {
         _logger = logger;
         _options = options;
@@ -45,6 +48,7 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
         _readinessWaiter = readinessWaiter;
         _dateTimeProvider = dateTimeProvider;
         _metricsHandler = metricsHandler;
+        _tracer = tracer;
 
         ServiceName = $"{base.ServiceName}[{typeof(TPayload).FullName},{typeof(THandler).FullName}]";
     }
@@ -98,7 +102,18 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
 
                 var startTimestamp = Stopwatch.GetTimestamp();
 
-                await provider.CleanAsync(identifier, olderThan, cancellationToken);
+                using var cleanupSpan = _tracer.StartCleanup(identifier);
+                cleanupSpan.SetTag("older_than", olderThan);
+
+                try
+                {
+                    await provider.CleanAsync(identifier, olderThan, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    cleanupSpan.SetFailed(ex);
+                    throw;
+                }
 
                 var elapsed = Stopwatch.GetElapsedTime(startTimestamp);
 

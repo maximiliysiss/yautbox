@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Yautbox.Entities;
+using Yautbox.Provider.Contracts;
 using Yautbox.Runner.Options;
 
 namespace Yautbox.Provider;
@@ -30,12 +31,10 @@ public interface IOutboxProvider
     /// Persists messages in the outbox.
     /// </summary>
     /// <typeparam name="T">Payload type of the messages.</typeparam>
-    /// <param name="identifier">Outbox handler identifier.</param>
     /// <param name="messages">Messages to add to the outbox.</param>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
     Task<IReadOnlyCollection<OutboxMessageId>> AddAsync<T>(
-        string identifier,
-        IReadOnlyCollection<OutboxMessage<T>> messages,
+        IReadOnlyCollection<AddRequest<T>> messages,
         CancellationToken cancellationToken);
 
     /// <summary>

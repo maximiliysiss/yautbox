@@ -5,6 +5,7 @@ using Yautbox.Metrics;
 using Yautbox.Provider;
 using Yautbox.Registy;
 using Yautbox.Runner.Infrastructure;
+using Yautbox.Tracing;
 
 namespace Yautbox.Extensions.Builders.Outbox;
 
@@ -52,6 +53,12 @@ internal sealed class OutboxInfrastructureBuilder(IServiceCollection services) :
     public IOutboxInfrastructureBuilder SetMetrics<T>() where T : IMetricsHandler
     {
         Services.TryAdd(ServiceDescriptor.Describe(typeof(IMetricsHandler), typeof(T), ServiceLifetime.Singleton));
+        return this;
+    }
+
+    public IOutboxInfrastructureBuilder SetTracing<T>() where T : class, IOutboxTracer
+    {
+        Services.TryAddSingleton<IOutboxTracer, T>();
         return this;
     }
 }

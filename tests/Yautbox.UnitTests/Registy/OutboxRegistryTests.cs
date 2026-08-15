@@ -16,7 +16,7 @@ public class OutboxRegistryTests
     {
         // Arrange
         var options = CreateOptions(o => o.Identifiers[typeof(Message)] = "custom-id");
-        var registry = new OutboxRegistry(options);
+        IOutboxRegistry registry = new OutboxRegistry(options);
 
         // Act
         var result = registry.GetIdentifier<Message>();
@@ -30,7 +30,7 @@ public class OutboxRegistryTests
     {
         // Arrange
         var options = CreateOptions(_ => { });
-        var registry = new OutboxRegistry(options);
+        IOutboxRegistry registry = new OutboxRegistry(options);
         var expected = typeof(Message).GetVersionFreeFullName();
 
         // Act
@@ -49,7 +49,7 @@ public class OutboxRegistryTests
             o.Prefix = "prefix-";
             o.Identifiers[typeof(Message)] = "custom-id";
         });
-        var registry = new OutboxRegistry(options);
+        IOutboxRegistry registry = new OutboxRegistry(options);
 
         // Act
         var result = registry.GetIdentifier<Message>();
@@ -63,7 +63,7 @@ public class OutboxRegistryTests
     {
         // Arrange
         var options = CreateOptions(o => o.Policy = OutboxRegistryPolicy.Strict);
-        var registry = new OutboxRegistry(options);
+        IOutboxRegistry registry = new OutboxRegistry(options);
 
         // Act
         var act = () => registry.GetIdentifier<Message>();

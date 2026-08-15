@@ -10,6 +10,12 @@ Yautbox is a lightweight .NET outbox library. It lets you enqueue messages durin
 - Configurable concurrency, polling, and cleanup
 - Pluggable storage via `IOutboxProvider`
 
+## Delivery model
+
+- Delivery is **at least once**: a message can be delivered more than once when a handler succeeds but persisting its result fails.
+- Processing order is not guaranteed, especially with multiple workers or parallel batches.
+- Handlers must be idempotent.
+
 ## Installation
 
 NuGet:
@@ -77,6 +83,9 @@ using Yautbox.Extensions.Outbox;
 
 await outbox.CancelAsync<OrderPlaced>(messageId);
 ```
+
+For a heterogeneous batch, use `IPolymorphicOutboxService`. Each payload is stored under its concrete runtime type
+and routed to that type's handler, while returned identifiers preserve input order.
 
 ## Configuration options
 
@@ -156,6 +165,11 @@ public sealed class MyMetricsHandler : IMetricsHandler
     public ValueTask ErrorsAsync(string identifier, int count, CancellationToken ct) => ValueTask.CompletedTask;
 }
 ```
+
+## Tracing
+
+Yautbox creates tracing scopes for enqueue, fetch, handle, persist, and cleanup through `IOutboxTracer`. The default
+tracer is a no-op. Register an `Activity`/OpenTelemetry adapter with `builder.SetTracing<MyOutboxTracer>()`.
 
 ## Target frameworks
 

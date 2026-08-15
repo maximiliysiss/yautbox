@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Yautbox.Entities;
 using Yautbox.Postgres.Repositories;
 using Yautbox.Provider;
+using Yautbox.Provider.Contracts;
 using Yautbox.Runner.Options;
 
 namespace Yautbox.Postgres.Provider;
@@ -13,12 +14,11 @@ namespace Yautbox.Postgres.Provider;
 internal sealed class PostgresOutboxProvider(IPostgresOutboxRepository repository) : IOutboxProvider
 {
     public async Task<IReadOnlyCollection<OutboxMessageId>> AddAsync<T>(
-        string identifier,
-        IReadOnlyCollection<OutboxMessage<T>> messages,
+        IReadOnlyCollection<AddRequest<T>> messages,
         CancellationToken cancellationToken)
     {
         return await repository
-            .AddAsync(identifier, messages, cancellationToken)
+            .AddAsync(messages, cancellationToken)
             .ToArrayAsync(cancellationToken);
     }
 

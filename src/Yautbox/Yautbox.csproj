@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Title>Yautbox</Title>
     <PackageTags>outbox yautbox</PackageTags>
-    <Description>Lightweight .NET outbox library for enqueueing messages during application work and processing them later with background handlers. Storage-agnostic core with pluggable providers (InMemory, MSSQL, Postgres).</Description>
+    <Description>Lightweight .NET outbox library for enqueueing messages during application work and processing them later with background handlers. Storage-agnostic core with pluggable providers for in-memory and PostgreSQL storage.</Description>
     <PackageProjectUrl>https://github.com/maximiliysiss/yautbox/tree/master/src/Yautbox</PackageProjectUrl>
     <RepositoryUrl>https://github.com/maximiliysiss/yautbox/tree/master/src/Yautbox</RepositoryUrl>
     <PackageId>Yautbox</PackageId>

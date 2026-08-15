@@ -22,6 +22,7 @@ using Yautbox.Postgres.IntegrationTests.Shared.Extensions;
 using Yautbox.Postgres.IntegrationTests.Shared.Fixture;
 using Yautbox.Postgres.Options;
 using Yautbox.Postgres.Repositories;
+using Yautbox.Provider.Contracts;
 using Yautbox.Runner.Options;
 
 namespace Yautbox.Postgres.IntegrationTests.Repository;
@@ -60,7 +61,7 @@ public class OutboxRepositoryTests : IAsyncLifetime
 
         // Act
         var outboxMessageIds = await repository
-            .AddAsync(identifier: identifier, messages: [outboxMessage], cancellationToken: CancellationToken.None)
+            .AddAsync(messages: [new AddRequest<TestEvent>(identifier, outboxMessage)], cancellationToken: CancellationToken.None)
             .ToArrayAsync();
 
         _outboxDbHelper.Track(outboxMessageIds);

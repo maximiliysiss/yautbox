@@ -12,6 +12,7 @@ using Yautbox.Runner;
 using Yautbox.Runner.Infrastructure;
 using Yautbox.Runner.Options;
 using Yautbox.Services;
+using Yautbox.Tracing;
 
 namespace Yautbox.Extensions.Ioc;
 
@@ -43,7 +44,13 @@ public static class ServiceCollectionExtensions
             .TryAddScoped<IOutboxService, OutboxService>();
 
         services
+            .TryAddScoped<IPolymorphicOutboxService, OutboxService>();
+
+        services
             .TryAddSingleton<IMetricsHandler, DefaultMetricsHandler>();
+
+        services
+            .TryAddSingleton<IOutboxTracer, DefaultOutboxTracer>();
 
         services
             .TryAddSingleton<IPolicyFactory, DefaultPolicyFactory>();

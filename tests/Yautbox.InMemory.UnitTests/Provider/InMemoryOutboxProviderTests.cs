@@ -12,6 +12,7 @@ using Yautbox.InMemory.Infrastructure;
 using Yautbox.InMemory.Options;
 using Yautbox.InMemory.Provider;
 using Yautbox.InMemory.UnitTests.Extensions;
+using Yautbox.Provider.Contracts;
 using Yautbox.Runner.Options;
 
 namespace Yautbox.InMemory.UnitTests.Provider;
@@ -534,4 +535,16 @@ public class InMemoryOutboxProviderTests
     private sealed record Message(int Value);
 
     private sealed record OtherMessage(int Value);
+}
+
+internal static class InMemoryOutboxProviderTestExtensions
+{
+    public static Task<IReadOnlyCollection<OutboxMessageId>> AddAsync<T>(
+        this InMemoryOutboxProvider provider,
+        string identifier,
+        IReadOnlyCollection<OutboxMessage<T>> messages,
+        CancellationToken cancellationToken) =>
+        provider.AddAsync(
+            messages.Select(message => new AddRequest<T>(identifier, message)).ToArray(),
+            cancellationToken);
 }

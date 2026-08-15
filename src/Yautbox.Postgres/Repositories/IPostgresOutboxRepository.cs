@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Yautbox.Entities;
+using Yautbox.Provider.Contracts;
 using Yautbox.Runner.Options;
 
 namespace Yautbox.Postgres.Repositories;
@@ -16,8 +17,7 @@ internal interface IPostgresOutboxRepository
         CancellationToken cancellationToken);
 
     IAsyncEnumerable<OutboxMessageId> AddAsync<T>(
-        string identifier,
-        IReadOnlyCollection<OutboxMessage<T>> messages,
+        IReadOnlyCollection<AddRequest<T>> messages,
         CancellationToken cancellationToken);
 
     Task DeleteAsync(

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Options;
 using Yautbox.Exceptions;
@@ -10,10 +11,8 @@ internal sealed class OutboxRegistry(IOptionsSnapshot<OutboxRegistryOptions> opt
 {
     private readonly OutboxRegistryOptions _options = options.Value;
 
-    public string GetIdentifier<T>()
+    public string GetIdentifier(Type type)
     {
-        var type = typeof(T);
-
         var identifier = _options.Identifiers.GetValueOrDefault(type);
 
         if (identifier is null && _options.Policy is OutboxRegistryPolicy.Strict)

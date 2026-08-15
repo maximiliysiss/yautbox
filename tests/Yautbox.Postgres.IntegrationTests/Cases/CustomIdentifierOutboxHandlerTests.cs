@@ -34,8 +34,7 @@ public class CustomIdentifierOutboxHandlerTests(IntegrationTestFixture fixture)
         var identifierMethod = registry.GetType().GetMethod("GetIdentifier");
         identifierMethod.Should().NotBeNull();
         var identifier = (string)identifierMethod!
-            .MakeGenericMethod(typeof(Message))
-            .Invoke(registry, null)!;
+            .Invoke(registry, [typeof(Message)])!;
         await service.HandleAsync(message: new Message(13));
 
         var handled = await WaitForHandledAsync(TimeSpan.FromSeconds(2));

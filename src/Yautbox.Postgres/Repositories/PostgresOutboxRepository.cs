@@ -17,6 +17,7 @@ using Yautbox.Postgres.Extensions.Npgsql;
 using Yautbox.Postgres.Infrastructure.Database;
 using Yautbox.Postgres.Infrastructure.DateTime;
 using Yautbox.Postgres.Options;
+using Yautbox.Provider.Contracts;
 using Yautbox.Runner.Options;
 
 namespace Yautbox.Postgres.Repositories;
@@ -58,7 +59,7 @@ FROM (
     SELECT id
     FROM {_options.SchemaName}.outbox_messages_active
     WHERE type = :type
-      AND scheduled_at <= :now
+      AND COALESCE(scheduled_at, '-infinity'::timestamptz) <= :now
       AND (locker IS NULL OR locker <= :now)
     ORDER BY id
     LIMIT :count
@@ -66,7 +67,7 @@ FROM (
 ) s
 WHERE om.id = s.id
 RETURNING om.id, om.payload, om.attempt,
-    NULLIF(om.scheduled_at, '-infinity') AS scheduledAt, om.created_at AS createdAt;
+    om.scheduled_at AS scheduledAt, om.created_at AS createdAt;
 ";
 
         var now = _dateTimeProvider.GetNow();
@@ -124,19 +125,22 @@ RETURNING om.id, om.payload, om.attempt,
     }
 
     public async IAsyncEnumerable<OutboxMessageId> AddAsync<T>(
-        string identifier,
-        IReadOnlyCollection<OutboxMessage<T>> messages,
+        IReadOnlyCollection<AddRequest<T>> messages,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         if (messages.Count is 0)
             yield break;
 
-        _logger.AddingOutboxMessages(identifier, messages.Count);
+        var identifier = string.Join(", ", messages.Select(m => m.Identifier));
+
+        _logger.AddingOutboxMessages(
+            identifier: identifier,
+            count: messages.Count);
 
         var query = @$"
 INSERT INTO {_options.SchemaName}.outbox_messages(type, payload, created_at, attempt, scheduled_at, is_deleted)
-SELECT :type, payload, created_at, attempt, COALESCE(scheduled_at, '-infinity'), false
-FROM unnest(:payloads, :attempts, :scheduled_ats, :created_ats) AS t(payload, attempt, scheduled_at, created_at)
+SELECT type, payload, created_at, attempt, scheduled_at, false
+FROM unnest(:types, :payloads, :attempts, :scheduled_ats, :created_ats) AS t(type, payload, attempt, scheduled_at, created_at)
 RETURNING id;
 ";
 
@@ -146,11 +150,11 @@ RETURNING id;
         {
             Parameters =
             {
-                { "type", identifier },
-                { "payloads", messages.Select(Map).ToArray(), NpgsqlDbType.Array | NpgsqlDbType.Jsonb },
-                { "attempts", messages.Select(m => m.Attempt).ToArray() },
-                { "scheduled_ats", messages.Select(m => m.ScheduledAt).ToArray() },
-                { "created_ats", messages.Select(m => m.CreatedAt).ToArray() }
+                { "types", messages.Select(c => c.Identifier).ToArray() },
+                { "payloads", messages.Select(m => Map(m.Message)).ToArray(), NpgsqlDbType.Array | NpgsqlDbType.Jsonb },
+                { "attempts", messages.Select(m => m.Message.Attempt).ToArray() },
+                { "scheduled_ats", messages.Select(m => m.Message.ScheduledAt).ToArray() },
+                { "created_ats", messages.Select(m => m.Message.CreatedAt).ToArray() }
             }
         };
 

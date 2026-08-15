@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Yautbox.Entities;
 using Yautbox.Postgres.IntegrationTests.DbHelper.Shared.Extensions;
 using Yautbox.Postgres.Repositories;
+using Yautbox.Provider.Contracts;
 using Yautbox.Runner.Options;
 
 namespace Yautbox.Postgres.IntegrationTests.DbHelper.Repositories;
@@ -31,12 +32,11 @@ internal sealed class TrackingOutboxRepository : IPostgresOutboxRepository
         => _innerRepository.GetAsync<T>(identifier, count, locker, cancellationToken);
 
     public async IAsyncEnumerable<OutboxMessageId> AddAsync<T>(
-        string identifier,
-        IReadOnlyCollection<OutboxMessage<T>> messages,
+        IReadOnlyCollection<AddRequest<T>> messages,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var ids = await _innerRepository
-            .AddAsync(identifier, messages, cancellationToken)
+            .AddAsync(messages, cancellationToken)
             .ToArrayAsync(cancellationToken);
 
         _outboxDbHelper.Track(ids);

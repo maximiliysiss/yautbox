@@ -15,6 +15,7 @@ using Yautbox.Handlers;
 using Yautbox.Infrastructure.DateTime;
 using Yautbox.Metrics;
 using Yautbox.Provider;
+using Yautbox.Provider.Contracts;
 using Yautbox.Registy;
 using Yautbox.Runner.Options;
 using Yautbox.Services;
@@ -171,8 +172,7 @@ public class ServiceCollectionExtensionsTests
             CancellationToken cancellationToken) => throw new NotImplementedException();
 
         public Task<IReadOnlyCollection<OutboxMessageId>> AddAsync<T>(
-            string identifier,
-            IReadOnlyCollection<Entities.OutboxMessage<T>> messages,
+            IReadOnlyCollection<AddRequest<T>> messages,
             CancellationToken cancellationToken) => throw new NotImplementedException();
 
         public Task CancelAsync(

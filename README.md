@@ -15,6 +15,12 @@ implement your own storage provider.
 - Configurable concurrency, polling, and cleanup
 - Pluggable storage via `IOutboxProvider`
 
+## Delivery model
+
+- Delivery is **at least once**: a message can be delivered more than once when a handler succeeds but persisting its result fails.
+- Processing order is not guaranteed, especially with multiple workers or parallel batches.
+- Handlers must be idempotent.
+
 ## Installation
 
 NuGet:
@@ -77,6 +83,16 @@ Cancel by id if needed:
 using Yautbox.Extensions.Outbox;
 
 await outbox.CancelAsync<OrderPlaced>(messageId);
+```
+
+For a heterogeneous batch, resolve `IPolymorphicOutboxService`. Each payload is stored under its concrete runtime type
+and routed to that type's handler; returned identifiers preserve the input order:
+
+```csharp
+IPolymorphicOutboxService polymorphicOutbox = /* resolve from DI */;
+object[] events = [new OrderPlaced("A-123"), new CustomerRegistered("C-456")];
+
+IEnumerable<OutboxMessageId> ids = await polymorphicOutbox.HandleAsync(events);
 ```
 
 ## Configuration options
@@ -170,6 +186,22 @@ public sealed class MyMetricsHandler : IMetricsHandler
     public ValueTask ErrorsAsync(string identifier, int count, CancellationToken ct) => ValueTask.CompletedTask;
 }
 ```
+
+## Tracing
+
+Yautbox creates tracing scopes for enqueue, fetch, handle, persist, and cleanup operations through `IOutboxTracer`.
+The default tracer is a no-op. Register an adapter for your tracing system with `SetTracing<T>()`:
+
+```csharp
+services.AddOutbox(builder =>
+{
+    builder.UsePostgres(connectionString);
+    builder.SetTracing<MyOutboxTracer>();
+});
+```
+
+An `IOutboxTraceScope` receives operation tags and failures and can be backed by `System.Diagnostics.Activity`,
+OpenTelemetry, or another distributed tracing implementation.
 
 ## How it works
 

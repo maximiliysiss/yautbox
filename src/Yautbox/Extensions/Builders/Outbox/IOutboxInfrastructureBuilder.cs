@@ -4,6 +4,7 @@ using Yautbox.Metrics;
 using Yautbox.Provider;
 using Yautbox.Registy;
 using Yautbox.Runner.Infrastructure;
+using Yautbox.Tracing;
 
 namespace Yautbox.Extensions.Builders.Outbox;
 
@@ -62,4 +63,11 @@ public interface IOutboxInfrastructureBuilder
     /// <typeparam name="T">The metrics handler type to register. Must implement <see cref="IMetricsHandler"/>.</typeparam>
     /// <returns>The current instance of <see cref="IOutboxInfrastructureBuilder"/>, configured with the specified metrics handler.</returns>
     IOutboxInfrastructureBuilder SetMetrics<T>() where T : IMetricsHandler;
+
+    /// <summary>
+    /// Configures and registers an outbox tracer. The default tracer is a no-op.
+    /// </summary>
+    /// <typeparam name="T">The tracer type to register.</typeparam>
+    /// <returns>The current builder.</returns>
+    IOutboxInfrastructureBuilder SetTracing<T>() where T : class, IOutboxTracer;
 }
