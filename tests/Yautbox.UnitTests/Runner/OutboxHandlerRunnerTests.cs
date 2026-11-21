@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -126,6 +127,56 @@ public sealed class OutboxHandlerRunnerTests
         await scope.Received(1).DisposeAsync();
     }
 
+    [Fact]
+    public async Task TryProcessingMessages_WithPartitionKey_DoesNotMixKeysInOneHandlerCall()
+    {
+        // Arrange
+        var fetched = BuildMessages(count: 6);
+        var provider = CreateSucceedingProvider(fetched);
+        var handler = new SucceedingHandler();
+        var runner = CreateRunner(handler);
+        var options = new TestOptions { PerBufferCount = 2, PartitionKey = message => message.Id % 2 };
+
+        // Act
+        await InvokeTryProcessingMessagesAsync(runner, provider, CancellationToken.None, options: options);
+
+        // Assert
+        var batches = handler.Batches.ToArray();
+
+        batches.Should().HaveCount(4, "each key has 3 messages split into chunks of 2 and 1");
+        batches.Should().OnlyContain(batch => batch.Select(id => id % 2).Distinct().Count() == 1);
+        batches.SelectMany(batch => batch).Should().BeEquivalentTo(fetched.Select(message => message.Payload.Id));
+    }
+
+    [Fact]
+    public async Task TryProcessingMessages_WithoutPartitionKey_ChunksMessagesInFetchOrder()
+    {
+        // Arrange
+        var fetched = BuildMessages(count: 5);
+        var provider = CreateSucceedingProvider(fetched);
+        var handler = new SucceedingHandler();
+        var runner = CreateRunner(handler);
+        var options = new TestOptions { PerBufferCount = 2 };
+
+        // Act
+        await InvokeTryProcessingMessagesAsync(runner, provider, CancellationToken.None, options: options);
+
+        // Assert
+        handler.Batches
+            .Select(batch => string.Join(",", batch))
+            .Should().BeEquivalentTo(["1,2", "3,4", "5"]);
+    }
+
+    private static IOutboxProvider CreateSucceedingProvider(IReadOnlyCollection<StoredMessage> fetched)
+    {
+        var provider = Substitute.For<IOutboxProvider>();
+        provider
+            .GetAsync<TestMessage>(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<TimeSpan>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(fetched));
+
+        return provider;
+    }
+
     private static IPolicyFactory CreatePolicyFactory(IOutboxPolicyScope? scope)
     {
         var policyFactory = Substitute.For<IPolicyFactory>();
@@ -153,10 +204,10 @@ public sealed class OutboxHandlerRunnerTests
         return provider;
     }
 
-    private static OutboxHandlerRunner<SucceedingHandler, TestMessage> CreateRunner()
+    private static OutboxHandlerRunner<SucceedingHandler, TestMessage> CreateRunner(SucceedingHandler? handler = null)
     {
         var services = new ServiceCollection()
-            .AddScoped<SucceedingHandler>()
+            .AddSingleton(handler ?? new SucceedingHandler())
             .BuildServiceProvider();
 
         var tracer = Substitute.For<IOutboxTracer>();
@@ -165,7 +216,7 @@ public sealed class OutboxHandlerRunnerTests
 
         return new OutboxHandlerRunner<SucceedingHandler, TestMessage>(
             serviceProvider: services,
-            options: Substitute.For<IOptionsMonitor<IOutboxRunnerOptions>>(),
+            options: Substitute.For<IOptionsMonitor<IOutboxRunnerOptions<TestMessage>>>(),
             readinessWaiter: Substitute.For<IInfrastructureReadinessWaiter>(),
             logger: NullLogger<OutboxHandlerRunner<SucceedingHandler, TestMessage>>.Instance,
             dateTimeProvider: Substitute.For<IDateTimeProvider>(),
@@ -177,7 +228,8 @@ public sealed class OutboxHandlerRunnerTests
         OutboxHandlerRunner<SucceedingHandler, TestMessage> runner,
         IOutboxProvider provider,
         CancellationToken cancellationToken,
-        IPolicyFactory? policyFactory = null)
+        IPolicyFactory? policyFactory = null,
+        TestOptions? options = null)
     {
         var method = typeof(OutboxHandlerRunner<SucceedingHandler, TestMessage>)
             .GetMethod("TryProcessingMessagesAsync", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -188,7 +240,7 @@ public sealed class OutboxHandlerRunnerTests
 
         var task = (Task<bool>)method!.Invoke(
             runner,
-            ["test-message", provider, null, new TestOptions(), policyFactory, cancellationToken])!;
+            ["test-message", provider, null, options ?? new TestOptions(), policyFactory, cancellationToken])!;
 
         return await task;
     }
@@ -208,19 +260,25 @@ public sealed class OutboxHandlerRunnerTests
 
     public sealed class SucceedingHandler : IOutboxHandler<TestMessage>
     {
+        public ConcurrentQueue<int[]> Batches { get; } = new();
+
         public Task HandleAsync(IEnumerable<Handlers.OutboxMessage<TestMessage>> messages, CancellationToken cancellationToken)
-            => Task.CompletedTask;
+        {
+            Batches.Enqueue(messages.Select(message => message.Payload.Id).ToArray());
+            return Task.CompletedTask;
+        }
     }
 
-    private sealed class TestOptions : IOutboxRunnerOptions
+    private sealed class TestOptions : IOutboxRunnerOptions<TestMessage>
     {
+        public Func<TestMessage, object?>? PartitionKey { get; init; }
         public string? Identifier => null;
         public TimeSpan PollDelay => TimeSpan.FromSeconds(1);
         public int BufferSize => 100;
         public TimeSpan HandleTimeout => TimeSpan.FromMinutes(1);
         public bool IsEnabled => true;
         public int WorkersCount => 1;
-        public int PerBufferCount => 100;
+        public int PerBufferCount { get; init; } = 100;
         public DeletePolicy DeletePolicy => DeletePolicy.Safe;
         public TimeSpan FailureDelay => TimeSpan.FromSeconds(1);
         public TimeSpan Visibility => TimeSpan.FromMinutes(1);

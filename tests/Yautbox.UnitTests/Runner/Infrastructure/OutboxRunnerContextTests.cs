@@ -229,7 +229,7 @@ public class OutboxRunnerContextTests
         public DateTimeOffset GetNow() => now ?? DateTimeOffset.UtcNow;
     }
 
-    private sealed class TestRunnerOptions : IOutboxRunnerOptions
+    private sealed class TestRunnerOptions : IOutboxRunnerOptions<Message>
     {
         public string? Identifier => null;
         public TimeSpan PollDelay => TimeSpan.FromSeconds(1);

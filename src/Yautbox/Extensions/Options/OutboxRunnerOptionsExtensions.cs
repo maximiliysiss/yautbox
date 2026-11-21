@@ -6,7 +6,7 @@ namespace Yautbox.Extensions.Options;
 
 internal static class OutboxRunnerOptionsExtensions
 {
-    public static ValidationResult Validate(this IOutboxRunnerOptions options)
+    public static ValidationResult Validate<T>(this IOutboxRunnerOptions<T> options)
     {
         if (options.PollDelay <= TimeSpan.Zero)
             return new ValidationResult.FailureValidationResult("Poll delay cannot be zero or negative");

@@ -100,26 +100,30 @@ IEnumerable<OutboxMessageId> ids = await polymorphicOutbox.HandleAsync(events);
 ## Configuration options
 
 Each handler can be configured via `AddOutboxHandler().ConfigureOptions<TOptions>()`. Implement
-`IOutboxRunnerOptions` for full control or `ISimpleRunnerOptions` when only `BufferSize` must be supplied.
+`IOutboxRunnerOptions<TPayload>` for full control or `ISimpleRunnerOptions<TPayload>` when only `BufferSize` must be supplied.
 
 ```csharp
 using Microsoft.Extensions.Options;
 using Yautbox.Extensions.Ioc;
 using Yautbox.Runner.Options;
 
+public sealed class OrderPlacedOptions : ISimpleRunnerOptions<OrderPlaced>
+{
+    public int BufferSize { get; set; } = 500;
+    public int WorkersCount { get; set; } = 2;
+    public TimeSpan? BackupInterval { get; set; } = TimeSpan.FromHours(24);
+}
+
 services
     .AddOutboxHandler<OrderPlaced, OrderPlacedHandler>()
-    .ConfigureOptions<DefaultRunnerOptions>(options =>
-        options.Configure(o =>
-        {
-            o.BufferSize = 500;
-            o.WorkersCount = 2;
-            o.ExecutionPolicy = ExecutionPolicy.Parallel;
-            o.BackupInterval = TimeSpan.FromHours(24);
-        }));
+    .ConfigureOptions<OrderPlacedOptions>(options =>
+        options.Configure(o => o.BufferSize = 1000));
 ```
 
-`IOutboxRunnerOptions` settings and defaults:
+Options are bound to the handler payload: `ConfigureOptions<TOptions>()` accepts only types implementing
+`IOutboxRunnerOptions<TPayload>` for the payload of that handler. Without `ConfigureOptions` the defaults below are used.
+
+`IOutboxRunnerOptions<TPayload>` settings and defaults:
 
 - `Identifier` (default: payload type assembly-qualified name without version, culture, or public key token)
 - `PollDelay` (default: 5s + jitter)
@@ -137,6 +141,27 @@ services
 - `CancellationPolicy` (default: Safe)
 - `PolicyTimeout` (default: 5s; if the scope is busy, the cycle is skipped until the next poll)
 - `ScopeLifetime` (default: PerBatch)
+- `PartitionKey` (default: null, not partitioned)
+
+### Partitioning
+
+Set `PartitionKey` to partition the messages of a cycle. The messages fetched in one cycle are grouped by
+the key before being split into `PerBufferCount` chunks, so one `HandleAsync` call never mixes different keys. Chunks
+are handled concurrently. With `ExecutionPolicy.Sequential` this is the way to parallelize processing inside the
+acquired scope when messages with different keys can be handled independently.
+
+```csharp
+public sealed class OrderPlacedOptions : ISimpleRunnerOptions<OrderPlaced>
+{
+    public int BufferSize => 500;
+    ExecutionPolicy IOutboxRunnerOptions<OrderPlaced>.ExecutionPolicy => ExecutionPolicy.Sequential;
+    Func<OrderPlaced, object?>? IOutboxRunnerOptions<OrderPlaced>.PartitionKey => message => message.OrderId;
+}
+```
+
+Register it with `AddOutboxHandler<OrderPlaced, OrderPlacedHandler>().ConfigureOptions<OrderPlacedOptions>()`.
+
+With `ScopeLifetime.PerGroup` or `PerSession` all chunks share one handler instance, which must then be thread-safe.
 
 ### Infrastructure builder options
 

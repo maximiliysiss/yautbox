@@ -38,7 +38,7 @@ public static class ServiceCollectionExtensions
         configureInfrastructure.Invoke(builder);
 
         services
-            .AddOptions<DefaultRunnerOptions>();
+            .AddOptions();
 
         services
             .TryAddScoped<IOutboxService, OutboxService>();
@@ -71,12 +71,12 @@ public static class ServiceCollectionExtensions
     /// <param name="services">Service collection to configure.</param>
     /// <param name="lifetime">Service lifetime for the handler.</param>
     /// <returns>An outbox handler builder for further configuration.</returns>
-    public static IOutboxHandlerBuilder AddOutboxHandler<TPayload, THandler>(
+    public static IOutboxHandlerBuilder<TPayload> AddOutboxHandler<TPayload, THandler>(
         this IServiceCollection services,
         ServiceLifetime lifetime = ServiceLifetime.Scoped)
         where THandler : class, IOutboxHandler<TPayload>
     {
-        var builder = new OutboxHandlerBuilder(services);
+        var builder = new OutboxHandlerBuilder<TPayload>(services);
 
         services
             .TryAdd(ServiceDescriptor.Describe(typeof(THandler), typeof(THandler), lifetime));
@@ -100,25 +100,25 @@ public static class ServiceCollectionExtensions
         void ConfigureRegistry(OutboxRegistryOptions options, IServiceProvider serviceProvider)
             => options.Register<TPayload>(CreateOptions(serviceProvider));
 
-        IOptionsMonitor<IOutboxRunnerOptions> CreateOptions(IServiceProvider serviceProvider)
+        IOptionsMonitor<IOutboxRunnerOptions<TPayload>> CreateOptions(IServiceProvider serviceProvider)
         {
             var options = serviceProvider.GetService(builder._optionsType);
 
             if (options is not null)
-                options = new DefaultMonitorOptions((IOutboxRunnerOptions)options);
+                options = new DefaultMonitorOptions<TPayload>((IOutboxRunnerOptions<TPayload>)options);
 
             options ??= serviceProvider.GetRequiredService(typeof(IOptionsMonitor<>).MakeGenericType(builder._optionsType));
 
-            return (IOptionsMonitor<IOutboxRunnerOptions>)options;
+            return (IOptionsMonitor<IOutboxRunnerOptions<TPayload>>)options;
         }
     }
 
-    private sealed class DefaultMonitorOptions(IOutboxRunnerOptions options) : IOptionsMonitor<IOutboxRunnerOptions>
+    private sealed class DefaultMonitorOptions<TPayload>(IOutboxRunnerOptions<TPayload> options) : IOptionsMonitor<IOutboxRunnerOptions<TPayload>>
     {
-        public IOutboxRunnerOptions Get(string? name) => CurrentValue;
+        public IOutboxRunnerOptions<TPayload> Get(string? name) => CurrentValue;
 
-        public IDisposable? OnChange(Action<IOutboxRunnerOptions, string?> listener) => null;
+        public IDisposable? OnChange(Action<IOutboxRunnerOptions<TPayload>, string?> listener) => null;
 
-        public IOutboxRunnerOptions CurrentValue { get; } = options;
+        public IOutboxRunnerOptions<TPayload> CurrentValue { get; } = options;
     }
 }

@@ -1,9 +1,10 @@
 using System;
+using Yautbox.InMemory.IntegrationTests.Cases;
 using Yautbox.Runner.Options;
 
 namespace Yautbox.InMemory.IntegrationTests.Shared.Options;
 
-public sealed class HandleTimeoutRunnerOptions : IOutboxRunnerOptions
+public sealed class HandleTimeoutRunnerOptions : IOutboxRunnerOptions<HandleTimeoutOutboxHandlerTests.Message>
 {
     public string? Identifier { get; set; }
     public TimeSpan PollDelay { get; set; } = TimeSpan.FromMilliseconds(50);

@@ -36,7 +36,7 @@ public class OutboxRunnerOptionsExtensionsTests
             .Which.ErrorMessage.Should().Be("Retry delays cannot be negative");
     }
 
-    private sealed class TestRunnerOptions : IOutboxRunnerOptions
+    private sealed class TestRunnerOptions : IOutboxRunnerOptions<object>
     {
         public string? Identifier => null;
         public TimeSpan PollDelay => TimeSpan.FromSeconds(1);

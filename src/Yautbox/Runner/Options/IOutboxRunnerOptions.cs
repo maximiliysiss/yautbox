@@ -3,9 +3,10 @@ using System;
 namespace Yautbox.Runner.Options;
 
 /// <summary>
-/// Defines configuration options for outbox handler execution.
+/// Defines configuration options for outbox handler execution of payload type <typeparamref name="TPayload"/>.
 /// </summary>
-public interface IOutboxRunnerOptions
+/// <typeparam name="TPayload">Payload type handled by the handler these options apply to.</typeparam>
+public interface IOutboxRunnerOptions<TPayload>
 {
     /// <summary>
     /// Gets the outbox handler key. The default is the payload type assembly-qualified name without version, culture, and public key token.
@@ -40,6 +41,7 @@ public interface IOutboxRunnerOptions
 
     /// <summary>
     /// Gets the maximum number of messages passed to one handler call. The default is <see cref="BufferSize"/>.
+    /// Messages are split into chunks after being grouped by <see cref="PartitionKey"/> when it is set.
     /// </summary>
     int PerBufferCount => BufferSize;
 
@@ -100,4 +102,32 @@ public interface IOutboxRunnerOptions
     /// Gets the lifetime of the dependency injection scope used to resolve the handler. The default is <see cref="ScopeLifetime.PerBatch"/>.
     /// </summary>
     ScopeLifetime ScopeLifetime { get; }
+
+    /// <summary>
+    /// Selects the partition a message belongs to. The default is <see langword="null"/>: the messages of a cycle are not partitioned.
+    /// When set, the messages fetched in one cycle are grouped by the returned key before being split into
+    /// <see cref="PerBufferCount"/> chunks, so a single <c>HandleAsync</c> call only receives messages with equal keys.
+    /// Keys are compared with <see cref="object.Equals(object)"/>, so return a value type, a string or a record;
+    /// messages whose key is <see langword="null"/> form one group of their own.
+    /// </summary>
+    /// <remarks>
+    /// The chunks of all groups are handled concurrently, so a cycle makes one <c>HandleAsync</c> call per chunk —
+    /// up to <see cref="BufferSize"/> concurrent calls when every message has a distinct key.
+    /// Partitioning does not order messages: a group larger than <see cref="PerBufferCount"/> is still split into
+    /// concurrent chunks.
+    /// With <see cref="ExecutionPolicy.Parallel"/> messages with the same key fetched by other workers or
+    /// instances are handled in parallel with this cycle.
+    /// With <see cref="ExecutionPolicy.Sequential"/> the combination is intended: only one buffer is processed
+    /// across all instances at a time, and the key adds parallelism inside that buffer. Use it to speed up
+    /// sequential processing when the handler logic allows messages with different keys to be handled concurrently.
+    /// The cycle ends when its slowest chunk does, and <see cref="HandleTimeout"/> applies to the cycle as a whole:
+    /// one slow partition delays the next cycle for every key, and under <see cref="ExecutionPolicy.Sequential"/> keeps
+    /// the execution scope held until it finishes.
+    /// With <see cref="ScopeLifetime.PerGroup"/> or <see cref="ScopeLifetime.PerSession"/> all chunks of a cycle share
+    /// one handler instance and its scoped dependencies, which are then called concurrently and must be thread-safe.
+    /// <see cref="ScopeLifetime.PerBatch"/> gives every chunk its own scope and handler.
+    /// The delegate runs for every fetched message outside the handler's error handling: if it throws, the whole
+    /// cycle fails and its messages stay locked until <see cref="Visibility"/> expires.
+    /// </remarks>
+    Func<TPayload, object?>? PartitionKey => null;
 }

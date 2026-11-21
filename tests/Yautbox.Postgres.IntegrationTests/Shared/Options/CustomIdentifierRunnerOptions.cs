@@ -1,9 +1,10 @@
 using System;
+using Yautbox.Postgres.IntegrationTests.Cases;
 using Yautbox.Runner.Options;
 
 namespace Yautbox.Postgres.IntegrationTests.Shared.Options;
 
-public sealed class CustomIdentifierRunnerOptions : IOutboxRunnerOptions
+public sealed class CustomIdentifierRunnerOptions : IOutboxRunnerOptions<CustomIdentifierOutboxHandlerTests.Message>
 {
     public const string IdentifierValue = "yautbox-inmemory-custom-identifier";
 

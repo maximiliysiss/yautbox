@@ -3,7 +3,7 @@ using Yautbox.Runner.Options;
 
 namespace Yautbox.InMemory.IntegrationTests.Shared.Options;
 
-public sealed class TestRunnerOptions : IOutboxRunnerOptions
+public sealed class TestRunnerOptions<TMessage> : IOutboxRunnerOptions<TMessage>
 {
     public string? Identifier { get; set; }
     public TimeSpan PollDelay { get; set; } = TimeSpan.FromMilliseconds(50);

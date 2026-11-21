@@ -14,7 +14,7 @@ internal sealed class OutboxRegistryOptions
     public string? Prefix { get; set; }
     public OutboxRegistryPolicy Policy { get; set; } = OutboxRegistryPolicy.Lenient;
 
-    public void Register<T>(IOptionsMonitor<IOutboxRunnerOptions> monitor)
+    public void Register<T>(IOptionsMonitor<IOutboxRunnerOptions<T>> monitor)
     {
         var type = typeof(T);
 

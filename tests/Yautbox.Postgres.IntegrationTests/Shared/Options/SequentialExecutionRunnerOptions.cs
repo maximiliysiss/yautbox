@@ -1,9 +1,10 @@
 using System;
+using Yautbox.Postgres.IntegrationTests.Cases;
 using Yautbox.Runner.Options;
 
 namespace Yautbox.Postgres.IntegrationTests.Shared.Options;
 
-public sealed class SequentialExecutionRunnerOptions : IOutboxRunnerOptions
+public sealed class SequentialExecutionRunnerOptions : IOutboxRunnerOptions<SequentialExecutionOutboxHandlerTests.Message>
 {
     public string? Identifier { get; set; }
     public TimeSpan PollDelay { get; set; } = TimeSpan.FromMilliseconds(50);

@@ -6,9 +6,10 @@ using Yautbox.Runner.Options;
 namespace Yautbox.Extensions.Builders.Handler;
 
 /// <summary>
-/// Builds registrations for outbox handlers and their options.
+/// Builds registrations for an outbox handler of payload type <typeparamref name="TPayload"/> and its options.
 /// </summary>
-public interface IOutboxHandlerBuilder
+/// <typeparam name="TPayload">Payload type handled by the handler.</typeparam>
+public interface IOutboxHandlerBuilder<TPayload>
 {
     /// <summary>
     /// Gets the service collection used for registrations.
@@ -18,8 +19,8 @@ public interface IOutboxHandlerBuilder
     /// <summary>
     /// Configures options for the specified outbox runner options type.
     /// </summary>
-    /// <typeparam name="T">Options type to configure.</typeparam>
+    /// <typeparam name="T">Options type to configure. Must implement <see cref="IOutboxRunnerOptions{TPayload}"/> for the handler payload.</typeparam>
     /// <param name="configureOptions">Optional configuration callback.</param>
     /// <returns>The same builder instance for chaining.</returns>
-    IOutboxHandlerBuilder ConfigureOptions<T>(Action<OptionsBuilder<T>>? configureOptions = null) where T : class, IOutboxRunnerOptions;
+    IOutboxHandlerBuilder<TPayload> ConfigureOptions<T>(Action<OptionsBuilder<T>>? configureOptions = null) where T : class, IOutboxRunnerOptions<TPayload>;
 }

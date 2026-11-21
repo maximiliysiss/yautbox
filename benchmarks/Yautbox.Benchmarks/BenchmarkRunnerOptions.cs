@@ -2,7 +2,7 @@ using Yautbox.Runner.Options;
 
 namespace Yautbox.Benchmarks;
 
-internal sealed class BenchmarkRunnerOptions : IOutboxRunnerOptions
+internal sealed class BenchmarkRunnerOptions : IOutboxRunnerOptions<ProcessingBenchmarkTests.BenchmarkMessage>
 {
     public string? Identifier => null;
     public TimeSpan PollDelay { get; init; } = TimeSpan.FromMilliseconds(10);

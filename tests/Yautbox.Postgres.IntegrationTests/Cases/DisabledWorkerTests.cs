@@ -79,7 +79,7 @@ public class DisabledWorkerTests : IAsyncLifetime
         }
     }
 
-    public sealed class TestMessageHandlerOptions : IOutboxRunnerOptions
+    public sealed class TestMessageHandlerOptions : IOutboxRunnerOptions<DisabledWorkerTests.TestMessage>
     {
         public string? Identifier => null;
         public TimeSpan PollDelay => TimeSpan.FromSeconds(1);

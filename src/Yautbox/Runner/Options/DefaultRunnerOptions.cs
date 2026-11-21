@@ -2,7 +2,7 @@ using System;
 
 namespace Yautbox.Runner.Options;
 
-internal sealed class DefaultRunnerOptions : IOutboxRunnerOptions
+internal sealed class DefaultRunnerOptions<TPayload> : IOutboxRunnerOptions<TPayload>
 {
     public string? Identifier => null;
     public TimeSpan PollDelay { get; } = TimeSpan.FromSeconds(5);

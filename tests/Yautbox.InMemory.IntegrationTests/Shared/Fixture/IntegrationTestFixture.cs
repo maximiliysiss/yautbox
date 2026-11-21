@@ -31,7 +31,7 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<IntegrationTe
 
             services
                 .AddOutboxHandler<SimpleOutboxHandlerTests.Message, SimpleOutboxHandlerTests.Handler>()
-                .ConfigureOptions<TestRunnerOptions>();
+                .ConfigureOptions<TestRunnerOptions<SimpleOutboxHandlerTests.Message>>();
 
             services
                 .AddOutboxHandler<CustomIdentifierOutboxHandlerTests.Message, CustomIdentifierOutboxHandlerTests.Handler>()
@@ -43,23 +43,23 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<IntegrationTe
 
             services
                 .AddOutboxHandler<CancelledOutboxHandlerTests.Message, CancelledOutboxHandlerTests.Handler>()
-                .ConfigureOptions<TestRunnerOptions>();
+                .ConfigureOptions<TestRunnerOptions<CancelledOutboxHandlerTests.Message>>();
 
             services
                 .AddOutboxHandler<ScheduledOutboxHandlerTests.Message, ScheduledOutboxHandlerTests.Handler>()
-                .ConfigureOptions<TestRunnerOptions>();
+                .ConfigureOptions<TestRunnerOptions<ScheduledOutboxHandlerTests.Message>>();
 
             services
                 .AddOutboxHandler<RetryOutboxHandlerTests.Message, RetryOutboxHandlerTests.Handler>()
-                .ConfigureOptions<TestRunnerOptions>();
+                .ConfigureOptions<TestRunnerOptions<RetryOutboxHandlerTests.Message>>();
 
             services
                 .AddOutboxHandler<ExplicitRetryOutboxHandlerTests.Message, ExplicitRetryOutboxHandlerTests.Handler>()
-                .ConfigureOptions<TestRunnerOptions>();
+                .ConfigureOptions<TestRunnerOptions<ExplicitRetryOutboxHandlerTests.Message>>();
 
             services
                 .AddOutboxHandler<TransactionScopeOutboxHandlerTests.Message, TransactionScopeOutboxHandlerTests.Handler>()
-                .ConfigureOptions<TestRunnerOptions>();
+                .ConfigureOptions<TestRunnerOptions<TransactionScopeOutboxHandlerTests.Message>>();
 
             services
                 .AddOutboxHandler<VisibilityTimeoutOutboxHandlerTests.Message, VisibilityTimeoutOutboxHandlerTests.Handler>()
@@ -87,7 +87,7 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<IntegrationTe
 
             services
                 .AddOutboxHandler<MultipleMessagesOutboxHandlerTests.Message, MultipleMessagesOutboxHandlerTests.Handler>()
-                .ConfigureOptions<TestRunnerOptions>();
+                .ConfigureOptions<TestRunnerOptions<MultipleMessagesOutboxHandlerTests.Message>>();
         }
 
         public void Configure(IApplicationBuilder app)

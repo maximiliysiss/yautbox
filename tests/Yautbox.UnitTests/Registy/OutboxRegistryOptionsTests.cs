@@ -15,7 +15,7 @@ public class OutboxRegistryOptionsTests
     {
         // Arrange
         var options = new OutboxRegistryOptions();
-        var monitor = Substitute.For<Microsoft.Extensions.Options.IOptionsMonitor<IOutboxRunnerOptions>>();
+        var monitor = Substitute.For<Microsoft.Extensions.Options.IOptionsMonitor<IOutboxRunnerOptions<Message>>>();
         monitor.CurrentValue.Returns(new Options { Identifier = "custom-id" });
 
         // Act
@@ -30,7 +30,7 @@ public class OutboxRegistryOptionsTests
     {
         // Arrange
         var options = new OutboxRegistryOptions();
-        var monitor = Substitute.For<Microsoft.Extensions.Options.IOptionsMonitor<IOutboxRunnerOptions>>();
+        var monitor = Substitute.For<Microsoft.Extensions.Options.IOptionsMonitor<IOutboxRunnerOptions<Message>>>();
         monitor.CurrentValue.Returns(new Options { Identifier = null });
         var expected = typeof(Message).GetVersionFreeFullName();
 
@@ -46,7 +46,7 @@ public class OutboxRegistryOptionsTests
     {
         // Arrange
         var options = new OutboxRegistryOptions();
-        var monitor = Substitute.For<Microsoft.Extensions.Options.IOptionsMonitor<IOutboxRunnerOptions>>();
+        var monitor = Substitute.For<Microsoft.Extensions.Options.IOptionsMonitor<IOutboxRunnerOptions<Message>>>();
         monitor.CurrentValue.Returns(new Options { Identifier = "custom-id" });
 
         // Act
@@ -60,9 +60,9 @@ public class OutboxRegistryOptionsTests
         act.Should().Throw<HandlerAlreadyAddedException>();
     }
 
-    private sealed class Message;
+    public sealed class Message;
 
-    private sealed class Options : ISimpleRunnerOptions
+    private sealed class Options : ISimpleRunnerOptions<Message>
     {
         public int BufferSize { get; set; }
         public string? Identifier { get; set; }

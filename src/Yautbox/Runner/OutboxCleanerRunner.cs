@@ -31,11 +31,11 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
 
     private readonly ILogger<OutboxCleanerRunner<THandler, TPayload>> _logger;
 
-    private readonly IOptionsMonitor<IOutboxRunnerOptions> _options;
+    private readonly IOptionsMonitor<IOutboxRunnerOptions<TPayload>> _options;
 
     public OutboxCleanerRunner(
         ILogger<OutboxCleanerRunner<THandler, TPayload>> logger,
-        IOptionsMonitor<IOutboxRunnerOptions> options,
+        IOptionsMonitor<IOutboxRunnerOptions<TPayload>> options,
         IServiceProvider serviceProvider,
         IInfrastructureReadinessWaiter readinessWaiter,
         IDateTimeProvider dateTimeProvider,

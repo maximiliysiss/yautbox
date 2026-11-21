@@ -32,13 +32,13 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
     private readonly IMetricsHandler _metricsHandler;
     private readonly IOutboxTracer _tracer;
 
-    private readonly IOptionsMonitor<IOutboxRunnerOptions> _options;
+    private readonly IOptionsMonitor<IOutboxRunnerOptions<TPayload>> _options;
 
     private readonly ILogger<OutboxHandlerRunner<THandler, TPayload>> _logger;
 
     public OutboxHandlerRunner(
         IServiceProvider serviceProvider,
-        IOptionsMonitor<IOutboxRunnerOptions> options,
+        IOptionsMonitor<IOutboxRunnerOptions<TPayload>> options,
         IInfrastructureReadinessWaiter readinessWaiter,
         ILogger<OutboxHandlerRunner<THandler, TPayload>> logger,
         IDateTimeProvider dateTimeProvider,
@@ -141,7 +141,7 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
         string identifier,
         IOutboxProvider provider,
         THandler? handler,
-        IOutboxRunnerOptions options,
+        IOutboxRunnerOptions<TPayload> options,
         IPolicyFactory policyFactory,
         CancellationToken cancellationToken)
     {
@@ -154,7 +154,7 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
         string identifier,
         IOutboxProvider provider,
         THandler? handler,
-        IOutboxRunnerOptions options,
+        IOutboxRunnerOptions<TPayload> options,
         IPolicyFactory policyFactory,
         CancellationToken cancellationToken)
     {
@@ -204,7 +204,8 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
             var cycleCancellationToken = cancellationTokenSource.Token;
 
             var loopTasks = outboxMessages
-                .Chunk(options.PerBufferCount)
+                .GroupBy(c => options.PartitionKey?.Invoke(c.Payload))
+                .SelectMany(g => g.Chunk(options.PerBufferCount))
                 .Select(g => LoopAsync(g, cycleCancellationToken))
                 .ToArray();
 

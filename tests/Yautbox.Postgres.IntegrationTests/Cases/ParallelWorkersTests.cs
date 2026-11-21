@@ -80,7 +80,7 @@ public class ParallelWorkersTests
 
     public sealed record ParallelWorkerEvent(int Id, string Name);
 
-    public sealed class OutboxHandleTestsHandlerOptions : IOutboxRunnerOptions
+    public sealed class OutboxHandleTestsHandlerOptions : IOutboxRunnerOptions<ParallelWorkersTests.ParallelWorkerEvent>
     {
         public TimeSpan Visibility => TimeSpan.FromMinutes(10);
         public TimeSpan? BackupInterval => null;

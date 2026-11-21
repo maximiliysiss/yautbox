@@ -24,13 +24,13 @@ internal sealed class OutboxRunnerContext<T>
 
     private readonly IReadOnlyCollection<OutboxMessage<T>> _outboxMessages;
 
-    private readonly IOutboxRunnerOptions _options;
+    private readonly IOutboxRunnerOptions<T> _options;
 
     public OutboxRunnerContext(
         ILogger logger,
         IDateTimeProvider dateTimeProvider,
         IReadOnlyCollection<OutboxMessage<T>> outboxMessages,
-        IOutboxRunnerOptions options)
+        IOutboxRunnerOptions<T> options)
     {
         _logger = logger;
         _dateTimeProvider = dateTimeProvider;
