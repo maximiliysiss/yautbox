@@ -19,7 +19,7 @@ internal sealed class DefaultRunnerOptions : IOutboxRunnerOptions
     public TimeSpan? BackupInterval => null;
     public TimeSpan CleanupInterval { get; } = TimeSpan.FromDays(1);
     public ExecutionPolicy ExecutionPolicy => ExecutionPolicy.Parallel;
-    public TimeSpan PolicyTimeout { get; } = TimeSpan.FromMinutes(55);
+    public TimeSpan PolicyTimeout { get; } = TimeSpan.FromSeconds(5);
     public DeletePolicy CancellationPolicy => DeletePolicy.Safe;
     public ScopeLifetime ScopeLifetime => ScopeLifetime.PerBatch;
 }

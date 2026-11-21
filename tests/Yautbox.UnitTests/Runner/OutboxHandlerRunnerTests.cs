@@ -75,6 +75,67 @@ public sealed class OutboxHandlerRunnerTests
             Arg.Is<CancellationToken>(token => !token.CanBeCanceled));
     }
 
+    [Fact]
+    public async Task TryProcessingMessages_WhenPolicyScopeIsBusy_SkipsCycleWithoutFetching()
+    {
+        // Arrange
+        var provider = CreateProvider(BuildMessages(count: 3));
+        var runner = CreateRunner();
+        var policyFactory = CreatePolicyFactory(scope: null);
+
+        // Act
+        var processed = await InvokeTryProcessingMessagesAsync(runner, provider, CancellationToken.None, policyFactory);
+
+        // Assert
+        processed.Should().BeFalse();
+        await provider.DidNotReceiveWithAnyArgs().GetAsync<TestMessage>(default!, default, default, default);
+    }
+
+    [Fact]
+    public async Task TryProcessingMessages_WhenPolicyScopeIsLost_ReleasesMessagesWithoutDeleting()
+    {
+        // Arrange
+        var fetched = BuildMessages(count: 4, attempt: 1);
+        var provider = Substitute.For<IOutboxProvider>();
+        provider
+            .GetAsync<TestMessage>(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<TimeSpan>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyCollection<StoredMessage>>(fetched));
+
+        using var lost = new CancellationTokenSource();
+        await lost.CancelAsync();
+
+        var scope = Substitute.For<IOutboxPolicyScope>();
+        scope.HandleLostToken.Returns(lost.Token);
+
+        var runner = CreateRunner();
+
+        // Act
+        var processed = await InvokeTryProcessingMessagesAsync(
+            runner, provider, CancellationToken.None, CreatePolicyFactory(scope));
+
+        // Assert
+        processed.Should().BeFalse();
+
+        await provider.Received(1).RetryAsync(
+            "test-message",
+            Arg.Is<IReadOnlyCollection<StoredMessage>>(messages =>
+                messages.Count == fetched.Length && messages.All(message => message.Attempt == 1)),
+            Arg.Any<CancellationToken>());
+
+        await provider.DidNotReceiveWithAnyArgs().DeleteAsync(default!, default!, default, default);
+        await scope.Received(1).DisposeAsync();
+    }
+
+    private static IPolicyFactory CreatePolicyFactory(IOutboxPolicyScope? scope)
+    {
+        var policyFactory = Substitute.For<IPolicyFactory>();
+        policyFactory
+            .TryCreateAsync(Arg.Any<string>(), Arg.Any<ExecutionPolicy>(), Arg.Any<TimeSpan>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(scope));
+
+        return policyFactory;
+    }
+
     private static IOutboxProvider CreateProvider(IReadOnlyCollection<StoredMessage> fetched)
     {
         var provider = Substitute.For<IOutboxProvider>();
@@ -115,18 +176,15 @@ public sealed class OutboxHandlerRunnerTests
     private static async Task<bool> InvokeTryProcessingMessagesAsync(
         OutboxHandlerRunner<SucceedingHandler, TestMessage> runner,
         IOutboxProvider provider,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IPolicyFactory? policyFactory = null)
     {
         var method = typeof(OutboxHandlerRunner<SucceedingHandler, TestMessage>)
             .GetMethod("TryProcessingMessagesAsync", BindingFlags.Instance | BindingFlags.NonPublic);
 
         method.Should().NotBeNull("the graceful-shutdown processing seam must remain available");
 
-        var policyScope = Substitute.For<IAsyncDisposable>();
-        var policyFactory = Substitute.For<IPolicyFactory>();
-        policyFactory
-            .CreateAsync(Arg.Any<string>(), Arg.Any<ExecutionPolicy>(), Arg.Any<TimeSpan>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(policyScope));
+        policyFactory ??= CreatePolicyFactory(Substitute.For<IOutboxPolicyScope>());
 
         var task = (Task<bool>)method!.Invoke(
             runner,

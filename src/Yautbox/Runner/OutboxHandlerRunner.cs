@@ -158,11 +158,20 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
         IPolicyFactory policyFactory,
         CancellationToken cancellationToken)
     {
-        await using var _ = await policyFactory.CreateAsync(
+        await using var policyScope = await policyFactory.TryCreateAsync(
             identifier: identifier,
             policy: options.ExecutionPolicy,
             timeout: options.PolicyTimeout,
             cancellationToken: cancellationToken);
+
+        if (policyScope is null)
+        {
+            // Another worker holds the scope: wait for the next poll instead of treating it as an error.
+            _logger.OutboxPolicyScopeBusy(identifier);
+            return false;
+        }
+
+        var scopeLostToken = policyScope.HandleLostToken;
 
         var startTimestamp = Stopwatch.GetTimestamp();
 
@@ -189,7 +198,7 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
 
             _logger.OutboxMessagesFetched(identifier, outboxMessages.Count, elapsed);
 
-            using var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            using var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, scopeLostToken);
             cancellationTokenSource.CancelAfter(options.HandleTimeout);
 
             var cycleCancellationToken = cancellationTokenSource.Token;
@@ -203,6 +212,20 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
                 return false;
 
             var contexts = await Task.WhenAll(loopTasks);
+
+            if (scopeLostToken.IsCancellationRequested)
+            {
+                // Another worker may already own the scope. Do not persist results of this cycle and
+                // release the messages right away so they do not wait for Visibility to expire.
+                _logger.OutboxPolicyScopeLost(identifier, outboxMessages.Count);
+
+                await provider.RetryAsync(
+                    identifier: identifier,
+                    messages: outboxMessages,
+                    cancellationToken: CancellationToken.None);
+
+                return false;
+            }
 
             var failedCount = contexts.Count(c => c.IsFailed);
             if (failedCount is not 0)
@@ -275,7 +298,7 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
             IReadOnlyCollection<Entities.OutboxMessage<TPayload>> messages,
             CancellationToken stoppingToken)
         {
-            var context = new OutboxRunnerContext<TPayload>(_dateTimeProvider, messages, options);
+            var context = new OutboxRunnerContext<TPayload>(_logger, _dateTimeProvider, messages, options);
             using var handleSpan = _tracer.StartHandle(identifier, messages.Count);
 
             try

@@ -60,6 +60,8 @@ public interface IOutboxRunnerOptions
 
     /// <summary>
     /// Gets retry delays by attempt. When the current attempt is greater than the array length, the last delay is reused.
+    /// When empty, failed messages are retried after <see cref="FailureDelay"/>, or in the next cycle without delay
+    /// under <see cref="ExecutionPolicy.Sequential"/> to preserve message order.
     /// </summary>
     TimeSpan[] RetryDelays => [];
 
@@ -84,7 +86,8 @@ public interface IOutboxRunnerOptions
     ExecutionPolicy ExecutionPolicy { get; }
 
     /// <summary>
-    /// Gets the timeout for acquiring or holding the execution policy scope. The default is 55 minutes.
+    /// Gets the time to wait for the execution policy scope to become available. When it is not acquired in time,
+    /// the cycle is skipped until the next <see cref="PollDelay"/>. The default is 5 seconds.
     /// </summary>
     TimeSpan PolicyTimeout { get; }
 

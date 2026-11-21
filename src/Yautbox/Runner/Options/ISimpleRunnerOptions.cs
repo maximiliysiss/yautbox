@@ -21,5 +21,5 @@ public interface ISimpleRunnerOptions : IOutboxRunnerOptions
     ExecutionPolicy IOutboxRunnerOptions.ExecutionPolicy => ExecutionPolicy.Parallel;
     DeletePolicy IOutboxRunnerOptions.CancellationPolicy => DeletePolicy.Safe;
     ScopeLifetime IOutboxRunnerOptions.ScopeLifetime => ScopeLifetime.PerBatch;
-    TimeSpan IOutboxRunnerOptions.PolicyTimeout => TimeSpan.FromMinutes(55);
+    TimeSpan IOutboxRunnerOptions.PolicyTimeout => TimeSpan.FromSeconds(5);
 }

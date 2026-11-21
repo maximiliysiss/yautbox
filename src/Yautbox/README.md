@@ -124,7 +124,7 @@ services
 - `CleanupInterval` (default: 1d)
 - `ExecutionPolicy` (default: Parallel)
 - `CancellationPolicy` (default: Safe)
-- `PolicyTimeout` (default: 55m)
+- `PolicyTimeout` (default: 5s; if the scope is busy, the cycle is skipped until the next poll)
 - `ScopeLifetime` (default: PerBatch)
 
 ## How it works

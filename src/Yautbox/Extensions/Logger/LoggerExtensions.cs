@@ -55,4 +55,13 @@ internal static partial class LoggerExtensions
 
     [LoggerMessage(17, LogLevel.Information, "Outbox retrying {count} message(s) for {identifier} because of restarting.")]
     public static partial void OutboxRetrying(this ILogger logger, string identifier, int count);
+
+    [LoggerMessage(18, LogLevel.Debug, "Execution policy scope for {identifier} is held by another worker; skipping the cycle.")]
+    public static partial void OutboxPolicyScopeBusy(this ILogger logger, string identifier);
+
+    [LoggerMessage(19, LogLevel.Warning, "Execution policy scope for {identifier} was lost; releasing {count} message(s) without persisting results.")]
+    public static partial void OutboxPolicyScopeLost(this ILogger logger, string identifier, int count);
+
+    [LoggerMessage(20, LogLevel.Warning, "Outbox message {messageId} of type {type} is retried at {scheduledAt} under ExecutionPolicy.Sequential; messages after it can be handled before it.")]
+    public static partial void OutboxSequentialRetryReordering(this ILogger logger, long messageId, string type, DateTimeOffset? scheduledAt);
 }

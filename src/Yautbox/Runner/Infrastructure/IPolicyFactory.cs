@@ -11,12 +11,15 @@ namespace Yautbox.Runner.Infrastructure;
 public interface IPolicyFactory
 {
     /// <summary>
-    /// Creates a policy scope for the specified handler identifier.
+    /// Tries to create a policy scope for the specified handler identifier.
     /// </summary>
     /// <param name="identifier">Outbox handler identifier.</param>
     /// <param name="policy">Execution policy to apply.</param>
-    /// <param name="timeout">Timeout for the policy scope.</param>
+    /// <param name="timeout">Maximum time to wait for the policy scope to become available.</param>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
-    /// <returns>An async disposable that ends the policy scope when disposed.</returns>
-    Task<IAsyncDisposable> CreateAsync(string identifier, ExecutionPolicy policy, TimeSpan timeout, CancellationToken cancellationToken);
+    /// <returns>
+    /// A scope that ends when disposed, or <see langword="null"/> when the scope is held by another worker
+    /// and could not be acquired within <paramref name="timeout"/>.
+    /// </returns>
+    Task<IOutboxPolicyScope?> TryCreateAsync(string identifier, ExecutionPolicy policy, TimeSpan timeout, CancellationToken cancellationToken);
 }

@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using FluentAssertions;
 using Xunit;
 using Yautbox.Entities;
@@ -16,7 +19,7 @@ public class OutboxRunnerContextTests
         // Arrange
         var message = CreateMessage(attempt: 1);
         var options = new TestRunnerOptions { RetryCount = 1 };
-        var context = new OutboxRunnerContext<Message>(new TestDateTimeProvider(), [message], options);
+        var context = new OutboxRunnerContext<Message>(NullLogger.Instance, new TestDateTimeProvider(), [message], options);
         var handlerMessage = new Handlers.OutboxMessage<Message>(message, context);
 
         // Act
@@ -40,7 +43,7 @@ public class OutboxRunnerContextTests
             RetryDelays = [TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(30)]
         };
 
-        var context = new OutboxRunnerContext<Message>(new TestDateTimeProvider(now), [message], options);
+        var context = new OutboxRunnerContext<Message>(NullLogger.Instance, new TestDateTimeProvider(now), [message], options);
 
         // Act
         context.Fail();
@@ -63,7 +66,7 @@ public class OutboxRunnerContextTests
             RetryDelays = [TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(30)]
         };
 
-        var context = new OutboxRunnerContext<Message>(new TestDateTimeProvider(now), [message], options);
+        var context = new OutboxRunnerContext<Message>(NullLogger.Instance, new TestDateTimeProvider(now), [message], options);
 
         // Act
         context.Fail();
@@ -72,6 +75,123 @@ public class OutboxRunnerContextTests
         context.Retries
             .Should().ContainSingle()
             .Which.ScheduledAt.Should().Be(now.AddSeconds(30));
+    }
+
+    [Fact]
+    public void Fail_ShouldRetryInNextCycle_WhenSequentialAndNoRetryDelays()
+    {
+        // Arrange
+        var message = CreateMessage(attempt: 0);
+        var options = new TestRunnerOptions
+        {
+            ExecutionPolicy = ExecutionPolicy.Sequential,
+            FailureDelay = TimeSpan.FromMinutes(1)
+        };
+
+        var context = new OutboxRunnerContext<Message>(NullLogger.Instance, new TestDateTimeProvider(), [message], options);
+
+        // Act
+        context.Fail();
+
+        // Assert
+        context.Retries
+            .Should().ContainSingle()
+            .Which.ScheduledAt.Should().BeNull();
+    }
+
+    [Fact]
+    public void Fail_ShouldUseFailureDelay_WhenParallelAndNoRetryDelays()
+    {
+        // Arrange
+        var now = new DateTimeOffset(2026, 7, 6, 12, 0, 0, TimeSpan.Zero);
+        var message = CreateMessage(attempt: 0);
+        var options = new TestRunnerOptions { FailureDelay = TimeSpan.FromMinutes(1) };
+
+        var context = new OutboxRunnerContext<Message>(NullLogger.Instance, new TestDateTimeProvider(now), [message], options);
+
+        // Act
+        context.Fail();
+
+        // Assert
+        context.Retries
+            .Should().ContainSingle()
+            .Which.ScheduledAt.Should().Be(now.AddMinutes(1));
+    }
+
+    [Theory]
+    [InlineData(ExecutionPolicy.Sequential, 1)]
+    [InlineData(ExecutionPolicy.Parallel, 0)]
+    public void Retry_WithDelay_ShouldWarnAboutReordering_OnlyWhenSequential(ExecutionPolicy policy, int expected)
+    {
+        // Arrange
+        var logger = new CollectingLogger();
+        var message = CreateMessage(attempt: 0);
+        var options = new TestRunnerOptions { ExecutionPolicy = policy };
+        var context = new OutboxRunnerContext<Message>(logger, new TestDateTimeProvider(), [message], options);
+        var handlerMessage = new Handlers.OutboxMessage<Message>(message, context);
+
+        // Act
+        handlerMessage.Retry(TimeSpan.FromSeconds(30));
+
+        // Assert
+        logger.Warnings.Should().HaveCount(expected);
+    }
+
+    [Fact]
+    public void Retry_WithoutDelay_ShouldNotWarnAboutReordering_WhenSequential()
+    {
+        // Arrange
+        var logger = new CollectingLogger();
+        var message = CreateMessage(attempt: 0);
+        var options = new TestRunnerOptions { ExecutionPolicy = ExecutionPolicy.Sequential };
+        var context = new OutboxRunnerContext<Message>(logger, new TestDateTimeProvider(), [message], options);
+        var handlerMessage = new Handlers.OutboxMessage<Message>(message, context);
+
+        // Act
+        handlerMessage.Retry((TimeSpan?)null);
+
+        // Assert
+        logger.Warnings.Should().BeEmpty();
+        context.Retries.Should().ContainSingle().Which.ScheduledAt.Should().BeNull();
+    }
+
+    [Fact]
+    public void Retry_WithDelay_ShouldNotWarnAboutReordering_WhenRetryCountIsExceeded()
+    {
+        // Arrange
+        var logger = new CollectingLogger();
+        var message = CreateMessage(attempt: 1);
+        var options = new TestRunnerOptions { ExecutionPolicy = ExecutionPolicy.Sequential, RetryCount = 1 };
+        var context = new OutboxRunnerContext<Message>(logger, new TestDateTimeProvider(), [message], options);
+        var handlerMessage = new Handlers.OutboxMessage<Message>(message, context);
+
+        // Act
+        handlerMessage.Retry(TimeSpan.FromSeconds(30));
+
+        // Assert
+        logger.Warnings.Should().BeEmpty();
+        context.RetryExceeded.Should().ContainSingle().Which.Should().Be(message.Id);
+    }
+
+    [Fact]
+    public void Fail_ShouldNotWarnAboutReordering_WhenSequentialWithRetryDelays()
+    {
+        // Arrange
+        var logger = new CollectingLogger();
+        var message = CreateMessage(attempt: 0);
+        var options = new TestRunnerOptions
+        {
+            ExecutionPolicy = ExecutionPolicy.Sequential,
+            RetryDelays = [TimeSpan.FromSeconds(5)]
+        };
+
+        var context = new OutboxRunnerContext<Message>(logger, new TestDateTimeProvider(), [message], options);
+
+        // Act
+        context.Fail();
+
+        // Assert
+        logger.Warnings.Should().BeEmpty();
     }
 
     private static OutboxMessage<Message> CreateMessage(int attempt)
@@ -83,6 +203,26 @@ public class OutboxRunnerContextTests
             ScheduledAt: null);
 
     private sealed record Message(int Value);
+
+    private sealed class CollectingLogger : ILogger
+    {
+        public List<string> Warnings { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            if (logLevel is LogLevel.Warning)
+                Warnings.Add(formatter(state, exception));
+        }
+    }
 
     private sealed class TestDateTimeProvider(DateTimeOffset? now = null) : IDateTimeProvider
     {
@@ -105,7 +245,7 @@ public class OutboxRunnerContextTests
         public TimeSpan Visibility => TimeSpan.FromSeconds(1);
         public TimeSpan? BackupInterval => null;
         public TimeSpan CleanupInterval => TimeSpan.FromSeconds(1);
-        public ExecutionPolicy ExecutionPolicy => ExecutionPolicy.Parallel;
+        public ExecutionPolicy ExecutionPolicy { get; init; } = ExecutionPolicy.Parallel;
         public TimeSpan PolicyTimeout => TimeSpan.FromSeconds(1);
         public DeletePolicy CancellationPolicy => DeletePolicy.Safe;
         public ScopeLifetime ScopeLifetime => ScopeLifetime.PerBatch;
