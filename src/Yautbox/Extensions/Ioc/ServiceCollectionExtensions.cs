@@ -11,6 +11,7 @@ using Yautbox.Registy;
 using Yautbox.Runner;
 using Yautbox.Runner.Infrastructure;
 using Yautbox.Runner.Options;
+using Yautbox.Runner.Validation;
 using Yautbox.Services;
 using Yautbox.Tracing;
 
@@ -80,6 +81,9 @@ public static class ServiceCollectionExtensions
 
         services
             .TryAdd(ServiceDescriptor.Describe(typeof(THandler), typeof(THandler), lifetime));
+
+        services
+            .TryAddEnumerable(ServiceDescriptor.Singleton<IOutboxOptionsValidator<TPayload>, OutboxOptionsValidator<TPayload>>());
 
         services
             .AddHostedService(ConfigureRunner)

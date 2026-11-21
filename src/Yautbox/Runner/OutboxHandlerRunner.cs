@@ -9,7 +9,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Yautbox.Extensions.DateTime;
 using Yautbox.Extensions.Logger;
-using Yautbox.Extensions.Options;
 using Yautbox.Handlers;
 using Yautbox.Infrastructure.DateTime;
 using Yautbox.Infrastructure.Hosted;
@@ -20,6 +19,7 @@ using Yautbox.Registy;
 using Yautbox.Runner.Extensions;
 using Yautbox.Runner.Infrastructure;
 using Yautbox.Runner.Options;
+using Yautbox.Runner.Validation;
 using Yautbox.Tracing;
 
 namespace Yautbox.Runner;
@@ -31,6 +31,7 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IMetricsHandler _metricsHandler;
     private readonly IOutboxTracer _tracer;
+    private readonly IEnumerable<IOutboxOptionsValidator<TPayload>> _validators;
 
     private readonly IOptionsMonitor<IOutboxRunnerOptions<TPayload>> _options;
 
@@ -43,7 +44,8 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
         ILogger<OutboxHandlerRunner<THandler, TPayload>> logger,
         IDateTimeProvider dateTimeProvider,
         IMetricsHandler metricsHandler,
-        IOutboxTracer tracer)
+        IOutboxTracer tracer,
+        IEnumerable<IOutboxOptionsValidator<TPayload>> validators)
         : base(logger)
     {
         _serviceProvider = serviceProvider;
@@ -52,6 +54,7 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
         _dateTimeProvider = dateTimeProvider;
         _metricsHandler = metricsHandler;
         _tracer = tracer;
+        _validators = validators;
         _options = options;
 
         ServiceName = $"{base.ServiceName}[{typeof(TPayload).FullName},{typeof(THandler).FullName}]";
@@ -68,19 +71,36 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
 
         var options = _options.CurrentValue;
 
-        Action? invalidAction = options switch
+        if (!options.IsEnabled)
         {
-            { IsEnabled: false } => () => _logger.DisableOutbox(ServiceName),
-            _ when options.Validate() is ValidationResult.FailureValidationResult r
-                => () => _logger.InvalidOutboxOptions(ServiceName, r.ErrorMessage),
-            _ => null,
-        };
-
-        if (invalidAction is not null)
-        {
-            invalidAction();
+            _logger.DisableOutbox(ServiceName);
             await Task.Delay(Timeout.Infinite, cancellationToken);
             return;
+        }
+
+        var validateResults = _validators
+            .SelectMany(x => x.Validate(options))
+            .ToArray();
+
+        var validationErrors = validateResults
+            .OfType<ValidateResult.Failure>()
+            .ToArray();
+
+        var validationWarnings = validateResults
+            .OfType<ValidateResult.Warning>()
+            .ToArray();
+
+        if (validationErrors is not [])
+        {
+            var errors = string.Join(Environment.NewLine, validationErrors.Select(x => x.Error));
+            _logger.OutboxValidationFailed(ServiceName, errors);
+            throw new InterruptLoopException(errors);
+        }
+
+        if (validationWarnings is not [])
+        {
+            var warnings = string.Join(Environment.NewLine, validationWarnings.Select(x => x.Message));
+            _logger.OutboxValidationWarning(ServiceName, warnings);
         }
 
         // Initial jitter to spread a load

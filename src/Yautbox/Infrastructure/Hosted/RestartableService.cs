@@ -27,7 +27,7 @@ internal abstract class RestartableService : BackgroundService
         var delayProvider = sleepDurationProvider ?? DefaultSleepDurationProvider.Instance;
 
         _retryPolicy = Policy
-            .Handle<Exception>(e => !e.IsCancel())
+            .Handle<Exception>(e => !e.IsCancel() && e is not InterruptLoopException)
             .WaitAndRetryForeverAsync(
                 delayProvider.GetSleepDelay,
                 (e, retryNumber, _) => _logger.RestartingService(ServiceName, retryNumber, e));

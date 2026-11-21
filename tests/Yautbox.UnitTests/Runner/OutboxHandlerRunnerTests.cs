@@ -221,7 +221,8 @@ public sealed class OutboxHandlerRunnerTests
             logger: NullLogger<OutboxHandlerRunner<SucceedingHandler, TestMessage>>.Instance,
             dateTimeProvider: Substitute.For<IDateTimeProvider>(),
             metricsHandler: Substitute.For<IMetricsHandler>(),
-            tracer: tracer);
+            tracer: tracer,
+            validators: []);
     }
 
     private static async Task<bool> InvokeTryProcessingMessagesAsync(

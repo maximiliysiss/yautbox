@@ -143,6 +143,21 @@ Options are bound to the handler payload: `ConfigureOptions<TOptions>()` accepts
 - `ScopeLifetime` (default: PerBatch)
 - `PartitionKey` (default: null, not partitioned)
 
+### Options validation
+
+Options are validated when a runner starts and after every options reload. All problems are reported at once:
+
+- **Failures** (for example, non-positive delays or sizes, `PerBufferCount > BufferSize`, `RetryCount <= 0`,
+  `RetryDelays` with zero or negative values, `Sequential` with more than one worker or with
+  `PerBufferCount != BufferSize`) are logged at `Error` level and stop the runner. With the default
+  `BackgroundServiceExceptionBehavior.StopHost` the application stops, so a misconfigured handler fails fast instead
+  of silently doing nothing.
+- **Warnings** are only logged: `Sequential` without `RetryCount` and `RetryDelays` (a failing message holds back the
+  queue indefinitely), and `PartitionKey` with `ScopeLifetime.PerGroup` or `PerSession` (one handler instance is
+  called concurrently).
+
+A disabled handler (`IsEnabled = false`) is not validated.
+
 ### Partitioning
 
 Set `PartitionKey` to partition the messages of a cycle. The messages fetched in one cycle are grouped by

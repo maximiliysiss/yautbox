@@ -35,8 +35,8 @@ internal static partial class LoggerExtensions
     [LoggerMessage(10, LogLevel.Warning, "Invalid time to live interval for service {serviceName}: {interval}.")]
     public static partial void InvalidTimeToLiveInterval(this ILogger logger, string serviceName, TimeSpan interval);
 
-    [LoggerMessage(11, LogLevel.Error, "Invalid outbox options for service {serviceName}: {errorMessage}")]
-    public static partial void InvalidOutboxOptions(this ILogger logger, string serviceName, string errorMessage);
+    [LoggerMessage(11, LogLevel.Error, "Invalid outbox options for service {serviceName}; the service is stopped:\n{errors}")]
+    public static partial void OutboxValidationFailed(this ILogger logger, string serviceName, string errors);
 
     [LoggerMessage(12, LogLevel.Information, "Stopping service {serviceName}.")]
     public static partial void StoppingService(this ILogger logger, string serviceName);
@@ -64,4 +64,7 @@ internal static partial class LoggerExtensions
 
     [LoggerMessage(20, LogLevel.Warning, "Outbox message {messageId} of type {type} is retried at {scheduledAt} under ExecutionPolicy.Sequential; messages after it can be handled before it.")]
     public static partial void OutboxSequentialRetryReordering(this ILogger logger, long messageId, string type, DateTimeOffset? scheduledAt);
+
+    [LoggerMessage(21, LogLevel.Warning, "Questionable outbox options for service {serviceName}:\n{warnings}")]
+    public static partial void OutboxValidationWarning(this ILogger logger, string serviceName, string warnings);
 }

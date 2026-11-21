@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,7 +9,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Yautbox.Extensions.DateTime;
 using Yautbox.Extensions.Logger;
-using Yautbox.Extensions.Options;
 using Yautbox.Handlers;
 using Yautbox.Infrastructure.DateTime;
 using Yautbox.Infrastructure.Hosted;
@@ -17,6 +18,7 @@ using Yautbox.Provider;
 using Yautbox.Registy;
 using Yautbox.Runner.Extensions;
 using Yautbox.Runner.Options;
+using Yautbox.Runner.Validation;
 using Yautbox.Tracing;
 
 namespace Yautbox.Runner;
@@ -29,6 +31,8 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
     private readonly IMetricsHandler _metricsHandler;
     private readonly IOutboxTracer _tracer;
 
+    private readonly IEnumerable<IOutboxOptionsValidator<TPayload>> _validators;
+
     private readonly ILogger<OutboxCleanerRunner<THandler, TPayload>> _logger;
 
     private readonly IOptionsMonitor<IOutboxRunnerOptions<TPayload>> _options;
@@ -40,7 +44,8 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
         IInfrastructureReadinessWaiter readinessWaiter,
         IDateTimeProvider dateTimeProvider,
         IMetricsHandler metricsHandler,
-        IOutboxTracer tracer) : base(logger)
+        IOutboxTracer tracer,
+        IEnumerable<IOutboxOptionsValidator<TPayload>> validators) : base(logger)
     {
         _logger = logger;
         _options = options;
@@ -49,6 +54,7 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
         _dateTimeProvider = dateTimeProvider;
         _metricsHandler = metricsHandler;
         _tracer = tracer;
+        _validators = validators;
 
         ServiceName = $"{base.ServiceName}[{typeof(TPayload).FullName},{typeof(THandler).FullName}]";
     }
@@ -64,13 +70,12 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
 
         var options = _options.CurrentValue;
 
-        Action? invalidAction = options switch
+        if (!options.IsEnabled)
         {
-            { IsEnabled: false } => () => _logger.DisableOutbox(ServiceName),
-            _ when options.Validate() is ValidationResult.FailureValidationResult r
-                => () => _logger.InvalidOutboxOptions(ServiceName, r.ErrorMessage),
-            _ => null,
-        };
+            _logger.DisableOutbox(ServiceName);
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+            return;
+        }
 
         if (options.BackupInterval is null)
         {
@@ -79,11 +84,29 @@ internal sealed class OutboxCleanerRunner<THandler, TPayload> : RestartableServi
             return;
         }
 
-        if (invalidAction is not null)
+        var validateResults = _validators
+            .SelectMany(x => x.Validate(options))
+            .ToArray();
+
+        var validationErrors = validateResults
+            .OfType<ValidateResult.Failure>()
+            .ToArray();
+
+        var validationWarnings = validateResults
+            .OfType<ValidateResult.Warning>()
+            .ToArray();
+
+        if (validationErrors is not [])
         {
-            invalidAction();
-            await Task.Delay(Timeout.Infinite, cancellationToken);
-            return;
+            var errors = string.Join(Environment.NewLine, validationErrors.Select(x => x.Error));
+            _logger.OutboxValidationFailed(ServiceName, errors);
+            throw new InterruptLoopException(errors);
+        }
+
+        if (validationWarnings is not [])
+        {
+            var warnings = string.Join(Environment.NewLine, validationWarnings.Select(x => x.Message));
+            _logger.OutboxValidationWarning(ServiceName, warnings);
         }
 
         while (!cancellationToken.IsCancellationRequested)
