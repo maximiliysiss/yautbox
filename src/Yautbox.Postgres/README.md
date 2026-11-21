@@ -86,5 +86,6 @@ This provider runs FluentMigrator migrations on startup and waits for readiness 
 
 ## Notes
 
+- Requires PostgreSQL 12 or newer (message claiming relies on `WITH ... AS MATERIALIZED`).
 - `ExecutionPolicy.Sequential` uses a Postgres advisory lock to ensure single active processing per identifier.
 - `DeletePolicy.Safe` marks records as deleted; cleanup is performed by the background cleaner when `BackupInterval` is set.
