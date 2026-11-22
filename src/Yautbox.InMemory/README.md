@@ -62,5 +62,5 @@ services.AddOutbox(builder => builder.UseInMemory(new InMemoryOutboxOptions
 ## Notes
 
 - Messages are stored only in memory and are lost on process restart.
-- `ExecutionPolicy.Sequential` is process-local for this provider.
+- `ExecutionPolicy.Sequential` uses an in-process lock per identifier: workers of one process (`WorkersCount > 1`) never process a cycle concurrently. The lock is process-local, like the storage itself.
 - Visibility and retry logic is implemented in-memory and should not be used as a durability mechanism in production.

@@ -48,9 +48,6 @@ internal sealed class OutboxOptionsValidator<TPayload> : IOutboxOptionsValidator
         if (options.PolicyTimeout <= TimeSpan.Zero)
             yield return new ValidateResult.Failure("PolicyTimeout must be greater than zero");
 
-        if (options.ExecutionPolicy is ExecutionPolicy.Sequential && options.WorkersCount > 1)
-            yield return new ValidateResult.Failure("Sequential execution policy cannot be used with more than one worker");
-
         if (options.ExecutionPolicy is ExecutionPolicy.Sequential && options.PerBufferCount != options.BufferSize)
             yield return new ValidateResult.Failure("Sequential execution policy requires PerBufferCount to be equal to BufferSize");
 

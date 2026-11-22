@@ -30,7 +30,7 @@ public class SimpleOutboxHandlerTests(IntegrationTestFixture fixture)
         await service.HandleAsync(message: message);
 
         // Assert
-        var result = Policy
+        var result = Polly.Policy
             .HandleResult<int>(a => a is 0)
             .WaitAndRetry(3, _ => TimeSpan.FromSeconds(1))
             .Execute(() => Handler.Index);

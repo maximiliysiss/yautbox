@@ -11,7 +11,7 @@ public sealed class SequentialExecutionRunnerOptions : IOutboxRunnerOptions<Sequ
     public int BufferSize { get; set; } = 3;
     public TimeSpan HandleTimeout { get; set; } = TimeSpan.FromMinutes(10);
     public bool IsEnabled { get; set; } = true;
-    public int WorkersCount { get; set; } = 1;
+    public int WorkersCount { get; set; } = 3;
     public int PerBufferCount { get; set; } = 3;
     public DeletePolicy DeletePolicy { get; set; } = DeletePolicy.Safe;
     public TimeSpan FailureDelay { get; set; } = TimeSpan.FromMilliseconds(100);

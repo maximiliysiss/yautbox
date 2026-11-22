@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Yautbox.Extensions.Builders.Outbox;
 using Yautbox.InMemory.Infrastructure;
 using Yautbox.InMemory.Options;
+using Yautbox.InMemory.Policy;
 using Yautbox.InMemory.Provider;
 using Yautbox.InMemory.Waiter;
 
@@ -26,6 +27,7 @@ public static class OutboxInfrastructureBuilderExtensions
 
         builder
             .SetProvider<InMemoryOutboxProvider>(ServiceLifetime.Singleton)
-            .SetWaiter<InMemoryInfrastructureWaiter>();
+            .SetWaiter<InMemoryInfrastructureWaiter>()
+            .SetPolicy<InMemoryPolicyFactory>(ServiceLifetime.Singleton);
     }
 }

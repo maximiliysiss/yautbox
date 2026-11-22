@@ -148,7 +148,7 @@ Options are bound to the handler payload: `ConfigureOptions<TOptions>()` accepts
 Options are validated when a runner starts and after every options reload. All problems are reported at once:
 
 - **Failures** (for example, non-positive delays or sizes, `PerBufferCount > BufferSize`, `RetryCount <= 0`,
-  `RetryDelays` with zero or negative values, `Sequential` with more than one worker or with
+  `RetryDelays` with zero or negative values, `Sequential` with
   `PerBufferCount != BufferSize`) are logged at `Error` level and stop the runner. With the default
   `BackgroundServiceExceptionBehavior.StopHost` the application stops, so a misconfigured handler fails fast instead
   of silently doing nothing.
@@ -252,7 +252,8 @@ OpenTelemetry, or another distributed tracing implementation.
     - a handler runner that polls, locks, and dispatches messages
     - a cleanup runner that deletes old handled records when `BackupInterval` is set
 - `ExecutionPolicy.Sequential` uses a provider-level policy scope to ensure single active processing for the same
-  identifier when the provider supports distributed locking.
+  identifier: an advisory lock for Postgres, an in-process lock for InMemory. Several workers (`WorkersCount > 1`) and
+  instances may run; only the one holding the scope processes a cycle, the others skip it until the next poll.
 
 ## Providers
 
@@ -260,6 +261,18 @@ OpenTelemetry, or another distributed tracing implementation.
 |----------|--------------------|------------------------------------------|---------------------|
 | InMemory | `Yautbox.InMemory` | [README](src/Yautbox.InMemory/README.md) | Process memory only |
 | Postgres | `Yautbox.Postgres` | [README](src/Yautbox.Postgres/README.md) | PostgreSQL storage  |
+
+## Testing handlers
+
+`Yautbox.Testing` ([README](src/Yautbox.Testing/README.md)) builds `OutboxMessage<T>` instances for unit tests of a
+handler, without storage or a host:
+
+```csharp
+using Yautbox.Testing;
+
+var message = OutboxMessage.Of(new OrderPlaced("A-123"), attempt: 2);
+await handler.HandleAsync([message], CancellationToken.None);
+```
 
 ## Target Framework
 

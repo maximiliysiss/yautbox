@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Title>Yautbox.Testing</Title>
+    <PackageTags>outbox yautbox testing</PackageTags>
+    <Description>Unit-testing helpers for Yautbox: builds OutboxMessage instances so outbox handlers can be tested without storage or a host.</Description>
+    <PackageProjectUrl>https://github.com/maximiliysiss/yautbox/tree/master/src/Yautbox.Testing</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/maximiliysiss/yautbox/tree/master/src/Yautbox.Testing</RepositoryUrl>
+    <PackageId>Yautbox.Testing</PackageId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Yautbox\Yautbox.csproj"/>
+  </ItemGroup>
+
+</Project>

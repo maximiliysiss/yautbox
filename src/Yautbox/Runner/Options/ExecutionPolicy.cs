@@ -11,7 +11,11 @@ public enum ExecutionPolicy
     Parallel,
 
     /// <summary>
-    /// Requires a provider policy scope before processing messages for the same identifier.
+    /// Requires a provider policy scope before processing messages for the same identifier, so only one worker across
+    /// all instances processes a cycle at a time. Workers that do not get the scope within
+    /// <see cref="IOutboxRunnerOptions{TPayload}.PolicyTimeout"/> skip the cycle until the next poll.
+    /// The scope is provided by the provider's <see cref="Infrastructure.IPolicyFactory"/>: Postgres uses an advisory lock,
+    /// InMemory an in-process lock. Without a provider policy factory no lock is taken.
     /// </summary>
     Sequential
 }

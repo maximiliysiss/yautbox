@@ -61,9 +61,18 @@ public class OutboxOptionsValidatorTests
         { new TestRunnerOptions { RetryDelays = [TimeSpan.FromSeconds(1), TimeSpan.Zero] }, "RetryDelays must be greater than zero" },
         { new TestRunnerOptions { RetryDelays = [TimeSpan.FromSeconds(-1)] }, "RetryDelays must be greater than zero" },
         { new TestRunnerOptions { BackupInterval = TimeSpan.Zero }, "BackupInterval must be greater than zero" },
-        { new TestRunnerOptions { ExecutionPolicy = ExecutionPolicy.Sequential, WorkersCount = 2, RetryCount = 1 }, "Sequential execution policy cannot be used with more than one worker" },
         { new TestRunnerOptions { ExecutionPolicy = ExecutionPolicy.Sequential, PerBufferCount = 5, RetryCount = 1 }, "Sequential execution policy requires PerBufferCount to be equal to BufferSize" },
     };
+
+    [Fact]
+    public void Validate_ShouldAllowSeveralWorkers_WhenSequential()
+    {
+        // Arrange
+        var options = new TestRunnerOptions { ExecutionPolicy = ExecutionPolicy.Sequential, WorkersCount = 4, RetryCount = 1 };
+
+        // Act & Assert
+        Validate(options).Should().BeEmpty();
+    }
 
     [Fact]
     public void Validate_ShouldWarn_WhenSequentialWithoutRetryLimits()

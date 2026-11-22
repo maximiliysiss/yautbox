@@ -19,4 +19,8 @@
     <PackageReference Include="StronglyTypedId"/>
     <PackageReference Include="System.Linq.Async"/>
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Yautbox.Testing"/>
+  </ItemGroup>
 </Project>
