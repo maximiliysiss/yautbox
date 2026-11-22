@@ -32,6 +32,40 @@ public class OutboxRunnerContextTests
     }
 
     [Fact]
+    public void AddRetry_ShouldLogWarning_WhenRetryCountIsExceeded()
+    {
+        // Arrange
+        var logger = new CollectingLogger();
+        var message = CreateMessage(attempt: 1);
+        var options = new TestRunnerOptions { RetryCount = 1 };
+        var context = new OutboxRunnerContext<Message>(logger, new TestDateTimeProvider(), [message], options);
+
+        // Act
+        context.Fail();
+
+        // Assert
+        logger.Warnings.Should().ContainSingle()
+            .Which.Should().Contain("has exceeded retry count 1");
+    }
+
+    [Fact]
+    public void AddRetry_ShouldNotLog_WhenRetryCountIsNotExceeded()
+    {
+        // Arrange
+        var logger = new CollectingLogger();
+        var message = CreateMessage(attempt: 0);
+        var options = new TestRunnerOptions { RetryCount = 2 };
+        var context = new OutboxRunnerContext<Message>(logger, new TestDateTimeProvider(), [message], options);
+
+        // Act
+        context.Fail();
+
+        // Assert
+        logger.Warnings.Should().BeEmpty();
+        context.Retries.Should().ContainSingle();
+    }
+
+    [Fact]
     public void Fail_ShouldUseRetryDelayForCurrentAttempt()
     {
         // Arrange
@@ -169,7 +203,8 @@ public class OutboxRunnerContextTests
         handlerMessage.Retry(TimeSpan.FromSeconds(30));
 
         // Assert
-        logger.Warnings.Should().BeEmpty();
+        logger.Warnings.Should().ContainSingle("only the retry count warning is expected")
+            .Which.Should().Contain("has exceeded retry count").And.NotContain("Sequential");
         context.RetryExceeded.Should().ContainSingle().Which.Should().Be(message.Id);
     }
 

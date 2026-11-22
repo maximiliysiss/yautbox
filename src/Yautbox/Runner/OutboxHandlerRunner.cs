@@ -137,6 +137,8 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
 
                     await HandleLoopAsync(identifier, provider, handler, options, policyFactory, stoppingToken);
 
+                    await _metricsHandler.CycledAsync(identifier, stoppingToken);
+
                     await Task.Delay(options.PollDelay.Jitter(), stoppingToken);
                 }
                 catch (Exception ex) when (ex.IsCancel() && stoppingToken.IsCancellationRequested)
@@ -149,6 +151,8 @@ internal class OutboxHandlerRunner<THandler, TPayload> : RestartableService wher
                     var type = typeof(TPayload);
 
                     _logger.ErrorOutboxBackgroundService(type.FullName ?? type.Name, ex);
+
+                    await _metricsHandler.CycledFailedAsync(identifier, stoppingToken);
 
                     // Prevent tight loop on errors
                     await Task.Delay(options.FailureDelay.Jitter(), stoppingToken);

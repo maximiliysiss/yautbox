@@ -203,8 +203,15 @@ public sealed class MyMetricsHandler : IMetricsHandler
     public ValueTask CleanedInAsync(string identifier, TimeSpan elapsed, CancellationToken ct) => ValueTask.CompletedTask;
     public ValueTask ReadInAsync(string identifier, TimeSpan elapsed, CancellationToken ct) => ValueTask.CompletedTask;
     public ValueTask ErrorsAsync(string identifier, int count, CancellationToken ct) => ValueTask.CompletedTask;
+
+    // Optional: default implementations are no-ops.
+    public ValueTask CycledAsync(string identifier, CancellationToken ct) => ValueTask.CompletedTask;
+    public ValueTask CycledFailedAsync(string identifier, CancellationToken ct) => ValueTask.CompletedTask;
 }
 ```
+
+`CycledAsync` and `CycledFailedAsync` report every worker processing loop that ended normally or with an error.
+They have default no-op implementations, so existing handlers keep compiling.
 
 ## Tracing
 

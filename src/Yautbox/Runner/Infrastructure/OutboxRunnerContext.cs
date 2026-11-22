@@ -85,6 +85,7 @@ internal sealed class OutboxRunnerContext<T>
         if (IsRetryCountExceeded(message))
         {
             _retryExceeded.Add(message.Id);
+            _logger.OutboxMessageRetryCountExceeded(message.Id.Value, typeof(T).Name, _options.RetryCount);
             return;
         }
 

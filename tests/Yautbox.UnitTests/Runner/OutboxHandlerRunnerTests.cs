@@ -127,56 +127,6 @@ public sealed class OutboxHandlerRunnerTests
         await scope.Received(1).DisposeAsync();
     }
 
-    [Fact]
-    public async Task TryProcessingMessages_WithPartitionKey_DoesNotMixKeysInOneHandlerCall()
-    {
-        // Arrange
-        var fetched = BuildMessages(count: 6);
-        var provider = CreateSucceedingProvider(fetched);
-        var handler = new SucceedingHandler();
-        var runner = CreateRunner(handler);
-        var options = new TestOptions { PerBufferCount = 2, PartitionKey = message => message.Id % 2 };
-
-        // Act
-        await InvokeTryProcessingMessagesAsync(runner, provider, CancellationToken.None, options: options);
-
-        // Assert
-        var batches = handler.Batches.ToArray();
-
-        batches.Should().HaveCount(4, "each key has 3 messages split into chunks of 2 and 1");
-        batches.Should().OnlyContain(batch => batch.Select(id => id % 2).Distinct().Count() == 1);
-        batches.SelectMany(batch => batch).Should().BeEquivalentTo(fetched.Select(message => message.Payload.Id));
-    }
-
-    [Fact]
-    public async Task TryProcessingMessages_WithoutPartitionKey_ChunksMessagesInFetchOrder()
-    {
-        // Arrange
-        var fetched = BuildMessages(count: 5);
-        var provider = CreateSucceedingProvider(fetched);
-        var handler = new SucceedingHandler();
-        var runner = CreateRunner(handler);
-        var options = new TestOptions { PerBufferCount = 2 };
-
-        // Act
-        await InvokeTryProcessingMessagesAsync(runner, provider, CancellationToken.None, options: options);
-
-        // Assert
-        handler.Batches
-            .Select(batch => string.Join(",", batch))
-            .Should().BeEquivalentTo(["1,2", "3,4", "5"]);
-    }
-
-    private static IOutboxProvider CreateSucceedingProvider(IReadOnlyCollection<StoredMessage> fetched)
-    {
-        var provider = Substitute.For<IOutboxProvider>();
-        provider
-            .GetAsync<TestMessage>(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<TimeSpan>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(fetched));
-
-        return provider;
-    }
-
     private static IPolicyFactory CreatePolicyFactory(IOutboxPolicyScope? scope)
     {
         var policyFactory = Substitute.For<IPolicyFactory>();

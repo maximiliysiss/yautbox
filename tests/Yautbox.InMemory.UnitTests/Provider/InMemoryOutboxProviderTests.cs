@@ -89,6 +89,28 @@ public class InMemoryOutboxProviderTests
     }
 
     [Fact]
+    public async Task GetAsync_ShouldKeepMessages_WhenCancelledBeforeFetch()
+    {
+        // Arrange
+        var provider = Create();
+        var identifier = typeof(Message).GetVersionFreeFullName();
+
+        await provider.AddAsync(identifier: identifier, messages: [CreateMessage(), CreateMessage()], cancellationToken: CancellationToken.None);
+
+        using var cancelled = new CancellationTokenSource();
+        await cancelled.CancelAsync();
+
+        // Act
+        var cancelledFetch = () => provider.GetAsync<Message>(identifier, count: 10, visibility: TimeSpan.FromMinutes(1), cancellationToken: cancelled.Token);
+        await cancelledFetch.Should().ThrowAsync<OperationCanceledException>();
+
+        var batch = await provider.GetAsync<Message>(identifier, count: 10, visibility: TimeSpan.FromMinutes(1), cancellationToken: CancellationToken.None);
+
+        // Assert
+        batch.Should().HaveCount(2, "a cancelled fetch must not take messages out of the queue");
+    }
+
+    [Fact]
     public async Task GetAsync_ShouldReturnOnlyMessagesForRequestedType()
     {
         // Arrange

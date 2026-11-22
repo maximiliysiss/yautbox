@@ -73,4 +73,18 @@ public interface IMetricsHandler
     /// <param name="count">Number of errors.</param>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
     ValueTask ErrorsAsync(string identifier, int count, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Reports that a worker finished a processing loop (one or more cycles until no progress) without an error.
+    /// </summary>
+    /// <param name="identifier">Outbox handler identifier.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    ValueTask CycledAsync(string identifier, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+
+    /// <summary>
+    /// Reports that a worker's processing loop failed with an error and the worker waits for the failure delay.
+    /// </summary>
+    /// <param name="identifier">Outbox handler identifier.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    ValueTask CycledFailedAsync(string identifier, CancellationToken cancellationToken) => ValueTask.CompletedTask;
 }

@@ -67,4 +67,7 @@ internal static partial class LoggerExtensions
 
     [LoggerMessage(21, LogLevel.Warning, "Questionable outbox options for service {serviceName}:\n{warnings}")]
     public static partial void OutboxValidationWarning(this ILogger logger, string serviceName, string warnings);
+
+    [LoggerMessage(22, LogLevel.Warning, "Outbox message {messageId} of type {type} has exceeded retry count {retryCount} and is deleted.")]
+    public static partial void OutboxMessageRetryCountExceeded(this ILogger logger, long messageId, string type, int? retryCount);
 }

@@ -24,7 +24,8 @@ public interface IOutboxRunnerOptions<TPayload>
     int BufferSize { get; }
 
     /// <summary>
-    /// Gets the timeout for handling one buffer of messages. The default is 55 minutes.
+    /// Gets the timeout for fetching and handling one buffer of messages. When it expires, fetching is cancelled
+    /// or the handler is cancelled and its messages are retried. The default is 55 minutes.
     /// </summary>
     TimeSpan HandleTimeout { get; }
 

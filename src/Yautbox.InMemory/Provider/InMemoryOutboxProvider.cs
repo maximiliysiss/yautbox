@@ -55,10 +55,10 @@ internal sealed class InMemoryOutboxProvider : IOutboxProvider
 
         var batch = new List<OutboxMessage<T>>(count);
 
+        // No cancellation inside the loop: a popped item must reach the batch, otherwise it is lost
+        // (it is no longer in the queue and is never rescheduled).
         while (count > 0 && inMemoryQueue.TryPopLeft(out var item))
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
             var message = (OutboxMessage<T>)item;
 
             if (!_enqueuedQueue.ContainsKey(message.Id))
